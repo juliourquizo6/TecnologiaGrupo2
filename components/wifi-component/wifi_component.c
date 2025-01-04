@@ -72,6 +72,17 @@ void my_event_handler(void *user_data, wifi_prov_cb_event_t event, void *event_d
     }
 }
 
+void enable_wifi_low_power_mode() {
+    // Activa el modo de ahorro de energía Wi-Fi
+    ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_MAX_MODEM));
+}
+
+
+void disable_wifi_low_power_mode() {
+    // Desactiva el ahorro de energía y vuelve al modo de Wi-Fi normal
+    ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_NONE));
+}
+
 void wifi_init(void){
     ESP_LOGI(TAG, "Initializing WiFi...");
     esp_err_t ret = nvs_flash_init();
@@ -94,9 +105,7 @@ void wifi_init(void){
     };
     
     // Initialize provisioning manager   
-    ESP_LOGI(TAG, "A"); 
     ESP_ERROR_CHECK(wifi_prov_mgr_init(config));
-    ESP_LOGI(TAG, "B"); 
 
     // Check if the device is provisioned
     bool provisioned = false; // Assume it is not
@@ -104,6 +113,8 @@ void wifi_init(void){
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+
+    enable_wifi_low_power_mode();
 
     ESP_LOGI(TAG, "WiFi SoftAP started");
     if (!provisioned) { // If it is not provisioned provision the device
@@ -125,14 +136,12 @@ void wifi_init(void){
         sec2_params.verifier_len = sizeof(sec2_verifier);
 
         wifi_prov_security2_params_t *sec_params = &sec2_params;
+        ESP_LOGI(TAG, "Wifi provision will start");
         ESP_ERROR_CHECK(wifi_prov_mgr_start_provisioning(security, (const void *) sec_params, service_name, service_key));
-        //if (prov_ret != ESP_OK) {
-        //    ESP_LOGE(TAG, "Provisioning start failed with error %s", esp_err_to_name(prov_ret));
-        //    return;
-        //}
-        ESP_LOGI(TAG, "C"); 
+        ESP_LOGI(TAG, "Provisioning started");
         wifi_prov_mgr_wait();
-        ESP_LOGI(TAG, "D"); 
+        ESP_LOGI(TAG, "Provisioning stopped");
+
         //wifi_prov_mgr_deinit();
             // Detener el WiFi y cambiar al modo STA
         esp_wifi_stop();  // Detenemos y desinicializamos el WiFi en modo AP
@@ -154,19 +163,7 @@ void wifi_init(void){
         ESP_LOGI(TAG, "Device already provisioned. Connecting to WiFi...");
         ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
         ESP_ERROR_CHECK(esp_wifi_start());
+        
     }
-}
-
-
-void wifi_register_event_handlers() {
-
-    //ESP_ERROR_CHECK(esp_event_handler_instance_register_with(
-    //    wifi_event_loop_handle,
-    //    WIFI_CUSTOM_EVENTS,
-    //    ESP_EVENT_ANY_ID,
-    //    wifi_event_handler,
-    //    NULL,
-    //    NULL
-    //));
-    ESP_LOGI(TAG, "Mock");
+    disable_wifi_low_power_mode(); 
 }

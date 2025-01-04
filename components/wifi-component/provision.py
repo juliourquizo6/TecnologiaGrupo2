@@ -19,10 +19,10 @@ def config(request):
     return 'security1'
 
 # Función para realizar el provisioning
-@pytest.mark.parametrize('config', ['security1'], indirect=True)
+@pytest.mark.parametrize('config', ['security2'], indirect=True)
 def provision_esp32(dut: Dut, sec_ver: int, ap_ssid: str, ap_password: str, config) -> None:
     # Obtener el nombre del dispositivo BLE desde la salida del ESP32
-    devname = "PROV_01884"
+    devname = "PROV_018884"
     logging.info('Dispositivo BLE del DUT : {}'.format(devname))
 
     # Configurar el modo de provisión (BLE o SoftAP)
@@ -78,10 +78,10 @@ def provision_esp32(dut: Dut, sec_ver: int, ap_ssid: str, ap_password: str, conf
 # Ejemplo de ejecución de prueba con parámetros de seguridad 1
 @pytest.mark.esp32
 @pytest.mark.generic
-@pytest.mark.parametrize('config', ['security1',], indirect=True)
+@pytest.mark.parametrize('config', ['security2',], indirect=True)
 def test_wifi_prov_mgr_sec1(dut: Dut, config) -> None:
-    ap_ssid = 'MiRedWiFi'
-    ap_password = 'MiPassword2024'
+    ap_ssid = 'MOVISTAR_PLUS_C19C'
+    ap_password = 'B11E9DCDFB2B2340F411'
     provision_esp32(dut, sec_ver=1, ap_ssid=ap_ssid, ap_password=ap_password, config=config)
 
 # Ejemplo de ejecución de prueba con parámetros de seguridad 2

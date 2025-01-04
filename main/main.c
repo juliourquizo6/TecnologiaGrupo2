@@ -22,8 +22,6 @@ void app_main(void)
 
     esp_event_loop_create(&event_loop_args, &event_loop_handle);
 
-    wifi_register_event_handlers();
-
     wifi_init();
     
     // 1: Provisionamiento
