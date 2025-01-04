@@ -80,8 +80,8 @@ def provision_esp32(dut: Dut, sec_ver: int, ap_ssid: str, ap_password: str, conf
 @pytest.mark.generic
 @pytest.mark.parametrize('config', ['security2',], indirect=True)
 def test_wifi_prov_mgr_sec1(dut: Dut, config) -> None:
-    ap_ssid = 'MOVISTAR_PLUS_C19C'
-    ap_password = 'B11E9DCDFB2B2340F411'
+    ap_ssid = ''
+    ap_password = ''
     provision_esp32(dut, sec_ver=1, ap_ssid=ap_ssid, ap_password=ap_password, config=config)
 
 # Ejemplo de ejecución de prueba con parámetros de seguridad 2
