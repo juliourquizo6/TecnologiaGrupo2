@@ -97,6 +97,23 @@ void wifi_init(void){
     }
     ESP_ERROR_CHECK(esp_event_loop_create_default());
     wifi_event_group = xEventGroupCreate();
+    // Crear una interfaz SoftAP para provisión
+    esp_netif_t *netif_ap = esp_netif_create_default_wifi_ap();
+    assert(netif_ap != NULL);
+
+    // Configurar el servidor DHCP en SoftAP
+    esp_netif_ip_info_t ip_info;
+    IP4_ADDR(&ip_info.ip, 192, 168, 4, 1);
+    IP4_ADDR(&ip_info.gw, 192, 168, 4, 1);
+    IP4_ADDR(&ip_info.netmask, 255, 255, 255, 0);
+    ESP_ERROR_CHECK(esp_netif_dhcps_stop(netif_ap));
+    ESP_ERROR_CHECK(esp_netif_set_ip_info(netif_ap, &ip_info));
+    ESP_ERROR_CHECK(esp_netif_dhcps_start(netif_ap));
+
+    // Inicializar WiFi y configurar
+    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
+
 
     /* Initialize TCP/IP */
     ESP_ERROR_CHECK(esp_netif_init());
@@ -108,11 +125,10 @@ void wifi_init(void){
     ESP_ERROR_CHECK(wifi_prov_mgr_init(config));
 
     // Check if the device is provisioned
-    bool provisioned = false; // Assume it is not
-    //ESP_ERROR_CHECK(wifi_prov_mgr_is_provisioned(&provisioned)); // Check and update provisioned state
+    bool provisioned = false;
+    bool * provisioned_pointer = &provisioned; // Assume it is not
+    ESP_ERROR_CHECK(wifi_prov_mgr_is_provisioned(&provisioned_pointer)); // Check and update provisioned state
 
-    wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
-    ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 
     enable_wifi_low_power_mode();
 
