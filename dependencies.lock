@@ -1,0 +1,39 @@
+dependencies:
+  bblanchon/arduinojson:
+    component_hash: 463812931f99cb7a554d64311288f537b43daaca3eed2427557b907af393447c
+    dependencies: []
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 6.21.5
+  idf:
+    source:
+      type: idf
+    version: 5.4.0
+  protocol_examples_common:
+    dependencies: []
+    source:
+      path: /home/josugoar/esp/esp-idf/examples/common_components/protocol_examples_common
+      type: local
+    version: '*'
+  thingsboard/thingsboard:
+    component_hash: 5ea11f90189806ed14e15c933511929278b0fc9838fd7a9a119ad3c33ade061d
+    dependencies:
+    - name: bblanchon/arduinojson
+      registry_url: https://components.espressif.com/
+      require: private
+      version: ^6.21.5
+    - name: idf
+      require: private
+      version: '*'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    version: 0.15.0
+direct_dependencies:
+- idf
+- protocol_examples_common
+- thingsboard/thingsboard
+manifest_hash: bf67bbab16be28f77fee51c465f5d27c0f824e49b6abeb1cd69114fd458ed09c
+target: esp32
+version: 2.0.0
