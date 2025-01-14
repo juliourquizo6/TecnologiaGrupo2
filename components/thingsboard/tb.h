@@ -32,9 +32,6 @@ enum
     TB_CLIENT_ATTRIBUTE_EVENT,
 };
 
-esp_err_t thingsboard_init(thingsboard **out_tb, const char *host, uint32_t port, const char *telemetry_topic, const char *cert_pem);
-void tb_destroy(thingsboard *tb);
-
 #define TB_EVENT_LOOP_QUEUE_SIZE 10
 #define TB_EVENT_LOOP_STACK_SIZE 2048
 #define TB_TIMEOUT_TICKS pdMS_TO_TICKS(CONFIG_TB_TIMEOUT_MS)
@@ -56,8 +53,11 @@ struct thingsboard
     char *cert_pem;
 };
 
-esp_err_t thingsboard_init(thingsboard **out_tb, const char *host, uint32_t port, const char *telemetry_topic, const char *cert_pem)
+esp_err_t thingsboard_init(thingsboard *tb, esp_event_loop_handle_t event_loop, const char *host, uint32_t port, const char *telemetry_topic, const char *cert_pem)
 {
+    assert(tb);
+    assert(event_loop);
+
     esp_err_t err = ESP_OK;
 
     if (!host)
@@ -82,31 +82,11 @@ esp_err_t thingsboard_init(thingsboard **out_tb, const char *host, uint32_t port
         telemetry_topic = TB_DEFAULT_TELEMETRY_TOPIC;
     }
 
-    thingsboard *tb = NULL;
-
-    tb = (thingsboard *)malloc(sizeof(*tb));
-    if (!tb)
-    {
-        err = ESP_ERR_NO_MEM;
-        goto cleanup;
-    }
-
     tb->task = xTaskGetCurrentTaskHandle();
 
     tb->client = NULL;
 
-    esp_event_loop_args_t event_loop_args = {
-        .queue_size = TB_EVENT_LOOP_QUEUE_SIZE,
-        .task_name = "tb_event_loop",
-        .task_priority = uxTaskPriorityGet(NULL),
-        .task_stack_size = TB_EVENT_LOOP_STACK_SIZE,
-        .task_core_id = tskNO_AFFINITY,
-    };
-    err = esp_event_loop_create(&event_loop_args, &tb->event_loop);
-    if (err != ESP_OK)
-    {
-        goto cleanup;
-    }
+    tb->event_loop = event_loop;
 
     tb->host = (char *)malloc(strlen(host) + 1);
     if (!tb->host)
@@ -144,15 +124,7 @@ esp_err_t thingsboard_init(thingsboard **out_tb, const char *host, uint32_t port
 
     strcpy(tb->cert_pem, cert_pem);
 
-    *out_tb = tb;
-    tb = NULL;
-
 cleanup:
-    if (tb)
-    {
-        tb_destroy(tb);
-    }
-
     return err;
 }
 
@@ -175,8 +147,6 @@ void tb_destroy(thingsboard *tb)
     free(tb->host);
 
     free(tb->telemetry_topic);
-
-    free(tb);
 }
 
 #endif
