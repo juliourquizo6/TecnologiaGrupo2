@@ -1,6 +1,0 @@
-{
-  "C_Cpp.autoAddFileAssociations": false,
-  "files.associations": {
-    "*.h": "c"
-  }
-}
