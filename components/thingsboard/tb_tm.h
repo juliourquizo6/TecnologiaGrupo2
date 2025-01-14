@@ -1,0 +1,119 @@
+#ifndef TB_TM_H
+#define TB_TM_H
+
+#include "tb.h"
+
+#define TB_TM_TOPIC "/v1/devices/me/telemetry"
+
+esp_err_t tb_telemetry_topic_from_null_terminated_subtopics(char **out_telemetry_topic, ...)
+{
+    assert(out_telemetry_topic);
+
+    esp_err_t err = ESP_OK;
+
+    char *telemetry_topic = NULL;
+
+    va_list args;
+    va_start(args, out_telemetry_topic);
+
+    int telemetry_topic_length = strlen(TB_TM_TOPIC);
+
+    while (true)
+    {
+        const char *arg = va_arg(args, const char *);
+        if (!arg)
+        {
+            break;
+        }
+
+        telemetry_topic_length += strlen("/") + strlen(arg);
+    }
+
+    va_end(args);
+
+    telemetry_topic = (char *)malloc(telemetry_topic_length + 1);
+    if (!telemetry_topic)
+    {
+        err = ESP_FAIL;
+        goto cleanup;
+    }
+
+    strcpy(telemetry_topic, TB_TM_TOPIC);
+
+    va_start(args, out_telemetry_topic);
+
+    while (true)
+    {
+        const char *arg = va_arg(args, const char *);
+        if (!arg)
+        {
+            break;
+        }
+
+        strcat(telemetry_topic, "/");
+        strcat(telemetry_topic, arg);
+    }
+
+    va_end(args);
+
+    *out_telemetry_topic = telemetry_topic;
+    telemetry_topic = NULL;
+
+cleanup:
+    if (telemetry_topic)
+    {
+        free(telemetry_topic);
+    }
+
+    return err;
+}
+
+esp_err_t tb_send_telemetry(thingsboard *tb, const char *data)
+{
+    assert(tb);
+    assert(data);
+
+    esp_err_t err = ESP_OK;
+
+    if (esp_mqtt_client_publish(tb->client, tb->telemetry_topic, data, 0, 0, 0) < 0)
+    {
+        err = ESP_FAIL;
+        goto cleanup;
+    }
+
+cleanup:
+    return err;
+}
+
+esp_err_t tb_send_telemetry_json(thingsboard *tb, cJSON *data_json)
+{
+    assert(tb);
+    assert(data_json);
+
+    esp_err_t err = ESP_OK;
+
+    char *data = NULL;
+
+    data = cJSON_Print(data_json);
+    if (!data)
+    {
+        err = ESP_FAIL;
+        goto cleanup;
+    }
+
+    err = tb_send_telemetry(tb, data);
+    if (err != ESP_OK)
+    {
+        goto cleanup;
+    }
+
+cleanup:
+    if (data)
+    {
+        free(data);
+    }
+
+    return err;
+}
+
+#endif
