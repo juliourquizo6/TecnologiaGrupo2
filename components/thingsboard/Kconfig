@@ -1,0 +1,30 @@
+menu "ThingsBoard Configuration"
+
+    config TB_TIMEOUT_MS
+        int "Timeout in milliseconds for blocking operations"
+        default 10000
+        help
+            This option sets the timeout duration in milliseconds for blocking operations
+            such as network requests and event handling.
+
+    config TB_PROV_DEVICE_KEY
+        string "Provisioning device secret"
+        default ""
+        help
+            This option sets the provisioning device key used during the initial connection
+            to the ThingsBoard cloud. It is required for authenticating the device.
+
+    config TB_PROV_DEVICE_SECRET
+        string "Provisioning device secret"
+        default ""
+        help
+            This option sets the provisioning device secret used during the initial connection
+            to the ThingsBoard cloud. It is required for authenticating the device.
+
+    config TB_TOKEN
+        string "Access token"
+        default ""
+        help
+            This option sets the access token used for authenticating the device with the cloud.
+
+endmenu
