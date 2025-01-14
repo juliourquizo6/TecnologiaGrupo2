@@ -1,8 +1,6 @@
 {
-    "C_Cpp.intelliSenseEngine": "default",
-    "idf.openOcdConfigs": [
-        "board/esp32c3-builtin.cfg"
-    ],
-    "idf.port": "/dev/ttyACM0",
-    "idf.flashType": "UART"
+  "C_Cpp.autoAddFileAssociations": false,
+  "files.associations": {
+    "*.h": "c"
+  }
 }
