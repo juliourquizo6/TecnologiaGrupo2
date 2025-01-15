@@ -1,8 +1,8 @@
-#include <esp_event.h>
-#include <esp_netif.h>
-#include <nvs_flash.h>
-#include <protocol_examples_common.h>
-#include <tb.h>
+#include "esp_event.h"
+#include "esp_netif.h"
+#include "nvs_flash.h"
+#include "protocol_examples_common.h"
+#include "tb.h"
 
 void app_main(void)
 {
@@ -13,15 +13,15 @@ void app_main(void)
 
     esp_event_loop_args_t event_loop_cfg = {
         .queue_size = 10,
-        .task_stack_size = 2048,
+        .task_stack_size = 1000,
     };
     esp_event_loop_handle_t event_loop = NULL;
     ESP_ERROR_CHECK(esp_event_loop_create(&event_loop_cfg, &event_loop));
 
     thingsboard tb = {0};
     ESP_ERROR_CHECK(thingsboard_init(&tb, event_loop, NULL, 0, NULL, NULL));
-    ESP_ERROR_CHECK(tb_connect(tb));
-    ESP_ERROR_CHECK(tb_send_telemetry(tb, "{\"temperature\": 25.0}"));
+    ESP_ERROR_CHECK(tb_conn_connect(tb));
+    ESP_ERROR_CHECK(tb_tm_send_telemetry(tb, "{\"temperature\": 25.0}"));
 
     tb_destroy(tb);
 }
