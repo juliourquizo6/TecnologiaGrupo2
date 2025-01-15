@@ -1,7 +1,6 @@
 #ifndef TB_H
 #define TB_H
 
-#include "tb/tb_conf.h"
 #include "tb/tb_attr.h"
 #include "tb/tb_conn.h"
 #include "tb/tb_nvs.h"
