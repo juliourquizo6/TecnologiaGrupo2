@@ -1,3 +1,3 @@
 idf_component_register(SRC_DIRS src
                        INCLUDE_DIRS include
-                       REQUIRES esp_event mqtt json nvs_flash)
+                       REQUIRES esp_event esp_https_ota mqtt json nvs_flash)
