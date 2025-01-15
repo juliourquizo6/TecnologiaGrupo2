@@ -4,6 +4,29 @@
 #include "freertos/FreeRTOS.h"
 #include "tb/tb_util.h"
 
+esp_err_t tb_set_mqtt_config_with_token(thingsboard *tb, const char *token)
+{
+    assert(tb);
+
+    esp_err_t err = ESP_OK;
+
+    esp_mqtt_client_config_t mqtt_cfg = {
+        .broker.address.hostname = tb->host,
+        .broker.address.port = tb->port,
+        .broker.address.transport = tb->cert_pem ? MQTT_TRANSPORT_OVER_SSL : MQTT_TRANSPORT_OVER_TCP,
+        .credentials.username = token,
+        .broker.verification.certificate = tb->cert_pem,
+    };
+    err = esp_mqtt_set_config(tb->client, &mqtt_cfg);
+    if (err != ESP_OK)
+    {
+        goto cleanup;
+    }
+
+cleanup:
+    return err;
+}
+
 esp_err_t tb_util_topic_from_topic_levels(const char *topics_levels[], size_t topics_levels_length, char **topic)
 {
     assert(topics_levels);
