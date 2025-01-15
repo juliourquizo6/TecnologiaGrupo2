@@ -226,7 +226,7 @@ static esp_err_t tb_attr_subscribe_to_request(thingsboard *tb, esp_event_handler
     }
 
 cleanup:
-    (void)tb_attr_unsubscribe_from_request(tb, request_attributes_handler);
+    tb_attr_unsubscribe_from_request(tb, request_attributes_handler);
 
     return err;
 }

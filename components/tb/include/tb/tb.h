@@ -24,17 +24,17 @@ enum
 typedef struct thingsboard thingsboard;
 
 void tb_destroy(thingsboard *tb);
-esp_err_t tb_init(thingsboard *tb, esp_event_loop_handle_t event_loop, const char *host, uint32_t port, const char *telemetry_topic, const char *cert_pem);
+esp_err_t tb_init(thingsboard *tb, esp_event_loop_handle_t event_loop, const char *host, uint32_t port, const char *topic, const char *cert_pem);
 
 struct thingsboard
 {
-    esp_mqtt_client_handle_t client;
     esp_event_loop_handle_t event_loop;
-    TaskHandle_t task;
     char *host;
     uint32_t port;
-    char *telemetry_topic;
+    char *topic;
     char *cert_pem;
+    esp_mqtt_client_handle_t client;
+    TaskHandle_t task;
 };
 
 #endif

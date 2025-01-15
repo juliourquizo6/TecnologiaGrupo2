@@ -12,7 +12,7 @@ esp_err_t tb_nvs_get_token(char *token, size_t *token_length)
 
     esp_err_t err = ESP_OK;
 
-    if (*token_length < TB_NVS_TOKEN_MIN_LENGTH || *token_length > TB_NVS_TOKEN_MAX_LENGTH)
+    if (*token_length < TB_NVS_TOKEN_LENGTH_MIN || *token_length > TB_NVS_TOKEN_LENGTH_MAX)
     {
         err = ESP_ERR_INVALID_SIZE;
         goto cleanup;
@@ -49,7 +49,7 @@ esp_err_t tb_nvs_set_token(const char *token)
     esp_err_t err = ESP_OK;
 
     size_t token_length = strlen(token) + 1;
-    if (token_length < TB_NVS_TOKEN_MIN_LENGTH || token_length > TB_NVS_TOKEN_MAX_LENGTH)
+    if (token_length < TB_NVS_TOKEN_LENGTH_MIN || token_length > TB_NVS_TOKEN_LENGTH_MAX)
     {
         err = ESP_ERR_INVALID_SIZE;
         goto cleanup;
@@ -101,7 +101,7 @@ esp_err_t tb_nvs_has_token(bool *has_token)
     if (err == ESP_OK)
     {
 
-        if (token_length < TB_NVS_TOKEN_MIN_LENGTH || token_length > TB_NVS_TOKEN_MAX_LENGTH)
+        if (token_length < TB_NVS_TOKEN_LENGTH_MIN || token_length > TB_NVS_TOKEN_LENGTH_MAX)
         {
             err = ESP_ERR_INVALID_SIZE;
             goto cleanup;

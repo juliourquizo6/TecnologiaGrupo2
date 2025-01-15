@@ -20,8 +20,8 @@ void app_main(void)
 
     thingsboard tb = {0};
     ESP_ERROR_CHECK(tb_init(&tb, event_loop, NULL, 0, NULL, NULL));
-    ESP_ERROR_CHECK(tb_conn_connect(&tb));
-    ESP_ERROR_CHECK(tb_tm_send_telemetry(&tb, "{\"temperature\": 25.0}"));
+    ESP_ERROR_CHECK(tb_conn_do(&tb));
+    ESP_ERROR_CHECK(tb_tm_send(&tb, "{\"temperature\": 25.0}"));
 
     tb_destroy(&tb);
 }
