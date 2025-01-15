@@ -19,6 +19,20 @@ static void tb_attr_subscribe_to_shared_handler(void *event_handler_arg, esp_eve
 
     switch (event->event_id)
     {
+    case MQTT_EVENT_SUBSCRIBED:
+    {
+        if (!tb_util_is_event_from_topic(event, TB_ATTR_SHARED_SUBSCRIBE_TOPIC))
+        {
+            break;
+        }
+
+        esp_err_t err = ESP_OK;
+
+        tb_util_notify(tb, err);
+
+        break;
+    }
+
     case MQTT_EVENT_DATA:
     {
         if (!tb_util_is_event_from_topic(event, TB_ATTR_SHARED_SUBSCRIBE_TOPIC))
@@ -31,15 +45,17 @@ static void tb_attr_subscribe_to_shared_handler(void *event_handler_arg, esp_eve
         err = esp_event_post_to(tb->event_loop, TB_EVENTS, TB_SHARED_ATTRIBUTE_EVENT, event->data, event->data_len, TB_UTIL_TIMEOUT_TICKS);
         if (err != ESP_OK)
         {
-            goto cleanup;
+            goto cleanup_data;
         }
 
-    cleanup:
+    cleanup_data:
         break;
     }
 
     default:
+    {
         break;
+    }
     }
 }
 
@@ -77,9 +93,17 @@ esp_err_t tb_attr_subscribe_to_shared(thingsboard *tb)
         goto cleanup;
     }
 
+    tb_util_clear_notification(tb);
+
     if (esp_mqtt_client_subscribe(tb->client, TB_ATTR_SHARED_SUBSCRIBE_TOPIC, 0) < 0)
     {
         err = ESP_FAIL;
+        goto cleanup;
+    }
+
+    err = tb_util_wait_for_notification(tb);
+    if (err != ESP_OK)
+    {
         goto cleanup;
     }
 
@@ -99,6 +123,30 @@ static void tb_attr_request_handler(const char *attribute_key, int32_t attribute
 
     switch (event->event_id)
     {
+    case MQTT_EVENT_SUBSCRIBED:
+    {
+        if (!tb_util_is_event_from_topic(event, TB_ATTR_RESPONSE_TOPIC))
+        {
+            break;
+        }
+
+        esp_err_t err = ESP_OK;
+
+        if (esp_mqtt_client_publish(tb->client, TB_ATTR_REQUEST_TOPIC, TB_ATTR_REQUEST_DATA, 0, 0, 0) < 0)
+        {
+            err = ESP_FAIL;
+            goto cleanup_subscribed;
+        }
+
+    cleanup_subscribed:
+        if (err != ESP_OK)
+        {
+            tb_util_notify(tb, err);
+        }
+
+        break;
+    }
+
     case MQTT_EVENT_DATA:
     {
         if (!tb_util_is_event_from_topic(event, TB_ATTR_RESPONSE_TOPIC))
@@ -115,30 +163,30 @@ static void tb_attr_request_handler(const char *attribute_key, int32_t attribute
         if (!data)
         {
             err = ESP_FAIL;
-            goto cleanup;
+            goto cleanup_data;
         }
 
         cJSON *attribute_json = cJSON_GetObjectItem(data_json, attribute_key);
         if (!attribute_json)
         {
             err = ESP_FAIL;
-            goto cleanup;
+            goto cleanup_data;
         }
 
         data = cJSON_Print(attribute_json);
         if (!data)
         {
             err = ESP_FAIL;
-            goto cleanup;
+            goto cleanup_data;
         }
 
         err = esp_event_post_to(tb->event_loop, TB_EVENTS, attribute_event_id, data, strlen(data), TB_UTIL_TIMEOUT_TICKS);
         if (err != ESP_OK)
         {
-            goto cleanup;
+            goto cleanup_data;
         }
 
-    cleanup:
+    cleanup_data:
         if (data)
         {
             free(data);
@@ -157,7 +205,9 @@ static void tb_attr_request_handler(const char *attribute_key, int32_t attribute
     }
 
     default:
+    {
         break;
+    }
     }
 }
 
@@ -205,15 +255,9 @@ static esp_err_t tb_attr_subscribe_to_request(thingsboard *tb, esp_event_handler
         goto cleanup;
     }
 
-    if (esp_mqtt_client_subscribe(tb->client, TB_ATTR_RESPONSE_TOPIC, 0) < 0)
-    {
-        err = ESP_FAIL;
-        goto cleanup;
-    }
-
     tb_util_clear_notification(tb);
 
-    if (esp_mqtt_client_publish(tb->client, TB_ATTR_REQUEST_TOPIC, TB_ATTR_REQUEST_DATA, 0, 0, 0) < 0)
+    if (esp_mqtt_client_subscribe(tb->client, TB_ATTR_RESPONSE_TOPIC, 0) < 0)
     {
         err = ESP_FAIL;
         goto cleanup;
