@@ -3,6 +3,7 @@
 #include <string.h>
 #include "esp_event.h"
 #include "mqtt_client.h"
+#include "tb/tb_util.h"
 #include "tb/tb.h"
 
 ESP_EVENT_DEFINE_BASE(TB_EVENTS);
@@ -102,9 +103,10 @@ esp_err_t tb_init(thingsboard *tb, esp_event_loop_handle_t event_loop, const cha
         tb->cert_pem = NULL;
     }
 
-    tb->client = NULL;
+    esp_mqtt_client_config_t mqtt_cfg = {0};
+    tb->client = esp_mqtt_client_init(&mqtt_cfg);
 
-    tb->task = NULL;
+    tb_util_clear_notification(tb);
 
 cleanup:
     if (err != ESP_OK)
