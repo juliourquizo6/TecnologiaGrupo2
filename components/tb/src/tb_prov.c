@@ -1,20 +1,14 @@
-#ifndef TB_PROV_H
-#define TB_PROV_H
-
-#include "esp_err.h"
-#include "tb.h"
-
-#define TB_PROV_REQUEST_TOPIC "/provision/request"
-#define TB_PROV_RESPONSE_TOPIC "/provision/response"
-#define TB_PROV_REQUEST_DATA "{\"provisionDeviceKey\":\"" CONFIG_TB_DEVICE_KEY "\",\"provisionDeviceSecret\":\"" CONFIG_TB_DEVICE_SECRET "\"}"
-
 #include <assert.h>
 #include <string.h>
 #include "cJSON.h"
 #include "esp_event.h"
 #include "mqtt_client.h"
-#include "tb_nvs.h"
-#include "tb_util.h"
+#include "tb/tb_conf.h"
+#include "tb/tb_nvs.h"
+#include "tb/tb_util.h"
+#include "tb/tb_prov.h"
+
+static void tb_prov_provision_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
 
 static void tb_prov_provision_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
@@ -30,16 +24,16 @@ static void tb_prov_provision_handler(void *event_handler_arg, esp_event_base_t 
         if (esp_mqtt_client_subscribe(tb->client, TB_PROV_RESPONSE_TOPIC, 0) < 0)
         {
             err = ESP_FAIL;
-            goto cleanup;
+            goto cleanup_connected;
         }
 
         if (esp_mqtt_client_publish(tb->client, TB_PROV_REQUEST_TOPIC, TB_PROV_REQUEST_DATA, 0, 0, 0) < 0)
         {
             err = ESP_FAIL;
-            goto cleanup;
+            goto cleanup_connected;
         }
 
-    cleanup:
+    cleanup_connected:
         if (err != ESP_OK)
         {
             tb_util_notify(tb, err);
@@ -63,36 +57,36 @@ static void tb_prov_provision_handler(void *event_handler_arg, esp_event_base_t 
         if (!data_json)
         {
             err = ESP_FAIL;
-            goto cleanup;
+            goto cleanup_data;
         }
 
         cJSON *status_json = cJSON_GetObjectItem(data_json, "status");
         if (!status_json)
         {
             err = ESP_FAIL;
-            goto cleanup;
+            goto cleanup_data;
         }
 
         if (strcmp(status_json->valuestring, "SUCCESS") != 0)
         {
             err = ESP_FAIL;
-            goto cleanup;
+            goto cleanup_data;
         }
 
         cJSON *token_json = cJSON_GetObjectItem(data_json, "credentialsValue");
         if (!token_json)
         {
             err = ESP_FAIL;
-            goto cleanup;
+            goto cleanup_data;
         }
 
         err = tb_nvs_set_token(token_json->valuestring);
         if (err != ESP_OK)
         {
-            goto cleanup;
+            goto cleanup_data;
         }
 
-    cleanup:
+    cleanup_data:
         if (data_json)
         {
             cJSON_Delete(data_json);
@@ -116,6 +110,7 @@ esp_err_t tb_prov_provision(thingsboard *tb)
 
     esp_err_t err = ESP_OK;
 
+    // TODO
     esp_mqtt_client_destroy(tb->client);
     tb->client = NULL;
 
@@ -200,5 +195,3 @@ esp_err_t tb_prov_try_to_provision_and_get_token(thingsboard *tb, char *token, s
 cleanup:
     return err;
 }
-
-#endif

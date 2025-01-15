@@ -1,15 +1,13 @@
-#ifndef TB_CONN_H
-#define TB_CONN_H
-
-#include "esp_err.h"
-#include "tb.h"
-
 #include <assert.h>
 #include "esp_event.h"
 #include "mqtt_client.h"
-#include "tb_nvs.h"
-#include "tb_prov.h"
-#include "tb_util.h"
+#include "tb/tb_conf.h"
+#include "tb/tb_prov.h"
+#include "tb/tb_nvs.h"
+#include "tb/tb_util.h"
+#include "tb/tb_conn.h"
+
+static void tb_conn_connect_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
 
 static void tb_conn_connect_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
@@ -25,10 +23,10 @@ static void tb_conn_connect_handler(void *event_handler_arg, esp_event_base_t ev
         err = esp_event_post_to(tb->event_loop, TB_EVENTS, TB_CONNECTED_EVENT, NULL, 0, TB_UTIL_TIMEOUT_TICKS);
         if (err != ESP_OK)
         {
-            goto cleanup;
+            goto cleanup_connected;
         }
 
-    cleanup:
+    cleanup_connected:
         tb_util_notify(tb, err);
 
         break;
@@ -41,10 +39,10 @@ static void tb_conn_connect_handler(void *event_handler_arg, esp_event_base_t ev
         err = esp_event_post_to(tb->event_loop, TB_EVENTS, TB_DISCONNECTED_EVENT, NULL, 0, TB_UTIL_TIMEOUT_TICKS);
         if (err != ESP_OK)
         {
-            goto cleanup;
+            goto cleanup_data;
         }
 
-    cleanup:
+    cleanup_data:
         break;
     }
 
@@ -62,7 +60,8 @@ esp_err_t tb_conn_connect(thingsboard *tb)
     char token[TB_NVS_TOKEN_MAX_LENGTH] = CONFIG_TB_TOKEN;
     if (*token == '\0')
     {
-        err = tb_prov_try_to_provision_and_get_token(tb, token, sizeof(token));
+        size_t token_lenght = sizeof(token);
+        err = tb_prov_try_to_provision_and_get_token(tb, token, &token_lenght);
         if (err != ESP_OK)
         {
             goto cleanup;
@@ -116,5 +115,3 @@ cleanup:
 
     return err;
 }
-
-#endif

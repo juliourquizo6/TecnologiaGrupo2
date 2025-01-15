@@ -1,26 +1,18 @@
-#ifndef TB_TM_H
-#define TB_TM_H
-
-#include "cJSON.h"
-#include "esp_err.h"
-#include "tb.h"
-
-#define TB_TM_TOPIC "v1/devices/me/telemetry"
-
 #include <assert.h>
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
 #include "mqtt_client.h"
+#include "tb/tb_tm.h"
 
-esp_err_t tb_tm_create_telemetry_topic_from_null_terminated_subtopics(char **telemetry_topic, ...)
+esp_err_t tb_tm_create_telemetry_topic_from_null_terminated_subtopics(char **out_telemetry_topic, ...)
 {
-    assert(telemetry_topic);
+    assert(out_telemetry_topic);
 
     esp_err_t err = ESP_OK;
 
     va_list args;
-    va_start(args, telemetry_topic);
+    va_start(args, out_telemetry_topic);
 
     int telemetry_topic_length = strlen(TB_TM_TOPIC);
     while (true)
@@ -37,7 +29,7 @@ esp_err_t tb_tm_create_telemetry_topic_from_null_terminated_subtopics(char **tel
 
     va_end(args);
 
-    telemetry_topic = (char *)malloc(telemetry_topic_length + 1);
+    char *telemetry_topic = (char *)malloc(telemetry_topic_length + 1);
     if (!telemetry_topic)
     {
         err = ESP_FAIL;
@@ -61,8 +53,11 @@ esp_err_t tb_tm_create_telemetry_topic_from_null_terminated_subtopics(char **tel
 
     va_end(args);
 
+    *out_telemetry_topic = telemetry_topic;
+    telemetry_topic = NULL;
+
 cleanup:
-    if (err != ESP_OK && telemetry_topic)
+    if (telemetry_topic)
     {
         free(telemetry_topic);
     }
@@ -103,7 +98,7 @@ esp_err_t tb_tm_send_telemetry_json(thingsboard *tb, const cJSON *data_json)
         goto cleanup;
     }
 
-    err = tb_send_telemetry(tb, data);
+    err = tb_tm_send_telemetry(tb, data);
     if (err != ESP_OK)
     {
         goto cleanup;
@@ -117,5 +112,3 @@ cleanup:
 
     return err;
 }
-
-#endif

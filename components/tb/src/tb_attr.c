@@ -1,19 +1,16 @@
-#ifndef TB_ATTR_H
-#define TB_ATTR_H
-
-#include "esp_err.h"
-#include "tb.h"
-
-#define TB_ATTR_SHARED_SUBSCRIBE_TOPIC "v1/devices/me/attributes"
-#define TB_ATTR_REQUEST_TOPIC "v1/devices/me/attributes/request/0"
-#define TB_ATTR_RESPONSE_TOPIC "v1/devices/me/attributes/response/0"
-#define TB_ATTR_REQUEST_DATA "{\"keys\":[]}"
-
 #include <assert.h>
 #include "cJSON.h"
 #include "esp_event.h"
 #include "mqtt_client.h"
-#include "tb_util.h"
+#include "tb/tb_util.h"
+#include "tb/tb_attr.h"
+
+static void tb_attr_subscribe_to_shared_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
+static void tb_attr_request_handler(const char *attribute_key, int32_t attribute_event_id, void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
+static void tb_attr_request_shared_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
+static void tb_attr_request_client_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
+static esp_err_t tb_attr_unsubscribe_from_request(thingsboard *tb, esp_event_handler_t request_attributes_handler);
+static esp_err_t tb_attr_subscribe_to_request(thingsboard *tb, esp_event_handler_t request_attributes_handler);
 
 static void tb_attr_subscribe_to_shared_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
@@ -40,6 +37,9 @@ static void tb_attr_subscribe_to_shared_handler(void *event_handler_arg, esp_eve
     cleanup:
         break;
     }
+
+    default:
+        break;
     }
 }
 
@@ -155,6 +155,9 @@ static void tb_attr_request_handler(const char *attribute_key, int32_t attribute
 
         break;
     }
+
+    default:
+        break;
     }
 }
 
@@ -223,7 +226,7 @@ static esp_err_t tb_attr_subscribe_to_request(thingsboard *tb, esp_event_handler
     }
 
 cleanup:
-    tb_unsubscribe_from_request(tb, request_attributes_handler);
+    (void)tb_attr_unsubscribe_from_request(tb, request_attributes_handler);
 
     return err;
 }
@@ -264,5 +267,3 @@ cleanup:
 
     return err;
 }
-
-#endif

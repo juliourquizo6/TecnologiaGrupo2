@@ -19,9 +19,9 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_event_loop_create(&event_loop_cfg, &event_loop));
 
     thingsboard tb = {0};
-    ESP_ERROR_CHECK(thingsboard_init(&tb, event_loop, NULL, 0, NULL, NULL));
-    ESP_ERROR_CHECK(tb_conn_connect(tb));
-    ESP_ERROR_CHECK(tb_tm_send_telemetry(tb, "{\"temperature\": 25.0}"));
+    ESP_ERROR_CHECK(tb_init(&tb, event_loop, NULL, 0, NULL, NULL));
+    ESP_ERROR_CHECK(tb_conn_connect(&tb));
+    ESP_ERROR_CHECK(tb_tm_send_telemetry(&tb, "{\"temperature\": 25.0}"));
 
-    tb_destroy(tb);
+    tb_destroy(&tb);
 }

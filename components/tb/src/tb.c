@@ -1,51 +1,12 @@
-#ifndef TB_H
-#define TB_H
-
-#include "sdkconfig.h"
-#include "tb_conf.h"
-#include "tb_attr.h"
-#include "tb_conn.h"
-#include "tb_nvs.h"
-#include "tb_ota.h"
-#include "tb_prov.h"
-#include "tb_tm.h"
-#include "tb_util.h"
-
-ESP_EVENT_DECLARE_BASE(TB_EVENTS);
-
-enum
-{
-    TB_CONNECTED_EVENT,
-    TB_DISCONNECTED_EVENT,
-    TB_SHARED_ATTRIBUTE_EVENT,
-    TB_CLIENT_ATTRIBUTE_EVENT,
-};
-
-#define TB_DEFAULT_HOST "demo.thingsboard.io"
-#define TB_DEFAULT_PORT 1883
-#define TB_DEFAULT_ENCRYPTED_PORT 8883
-#define TB_DEFAULT_TELEMETRY_TOPIC "v1/devices/me/telemetry"
-
-typedef struct thingsboard thingsboard;
-
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 #include "esp_event.h"
 #include "mqtt_client.h"
+#include "tb/tb_util.h"
+#include "tb/tb.h"
 
 ESP_EVENT_DEFINE_BASE(TB_EVENTS);
-
-struct thingsboard
-{
-    esp_mqtt_client_handle_t client;
-    esp_event_loop_handle_t event_loop;
-    TaskHandle_t task;
-    char *host;
-    uint32_t port;
-    char *telemetry_topic;
-    char *cert_pem;
-};
 
 void tb_destroy(thingsboard *tb)
 {
@@ -77,7 +38,7 @@ void tb_destroy(thingsboard *tb)
     tb->task = NULL;
 }
 
-esp_err_t thingsboard_init(thingsboard *tb, esp_event_loop_handle_t event_loop, const char *host, uint32_t port, const char *telemetry_topic, const char *cert_pem)
+esp_err_t tb_init(thingsboard *tb, esp_event_loop_handle_t event_loop, const char *host, uint32_t port, const char *telemetry_topic, const char *cert_pem)
 {
     if (!host)
     {
@@ -125,13 +86,7 @@ esp_err_t thingsboard_init(thingsboard *tb, esp_event_loop_handle_t event_loop, 
     }
     strcpy(tb->host, host);
 
-    tb->port = (char *)malloc(strlen(port) + 1);
-    if (!tb->port)
-    {
-        err = ESP_ERR_NO_MEM;
-        goto cleanup;
-    }
-    strcpy(tb->port, port);
+    tb->port = port;
 
     tb->telemetry_topic = (char *)malloc(strlen(telemetry_topic) + 1);
     if (!tb->telemetry_topic)
@@ -164,5 +119,3 @@ cleanup:
 
     return err;
 }
-
-#endif

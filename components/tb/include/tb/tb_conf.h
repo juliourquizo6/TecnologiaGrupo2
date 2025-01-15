@@ -1,6 +1,8 @@
 #ifndef TB_CONF_H
 #define TB_CONF_H
 
+#include "sdkconfig.h"
+
 #ifndef CONFIG_TB_TOKEN
 #define CONFIG_TB_TOKEN ""
 #endif
