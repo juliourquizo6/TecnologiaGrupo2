@@ -1,7 +1,46 @@
 #include <assert.h>
+#include <stdlib.h>
 #include <string.h>
 #include "freertos/FreeRTOS.h"
 #include "tb/tb_util.h"
+
+esp_err_t tb_util_topic_from_topic_levels(const char *topics_levels[], size_t topics_levels_length, char **topic)
+{
+    assert(topics_levels);
+    assert(topic);
+
+    esp_err_t err = ESP_OK;
+
+    size_t topic_length = 0;
+    for (size_t i = 0; i < topics_levels_length - 1; ++i)
+    {
+        topic_length += strlen(topics_levels[i]);
+        topic_length += strlen("/");
+    }
+    topic_length += strlen(topics_levels[topics_levels_length - 1]);
+
+    *topic = (char *)malloc(topic_length + 1);
+    if (!*topic)
+    {
+        err = ESP_ERR_NO_MEM;
+        goto cleanup;
+    }
+
+    for (size_t i = 0; i < topics_levels_length - 1; ++i)
+    {
+        strcat(*topic, topics_levels[i]);
+        strcat(*topic, "/");
+    }
+    strcat(*topic, topics_levels[topics_levels_length - 1]);
+
+cleanup:
+    if (err != ESP_OK && *topic)
+    {
+        free(*topic);
+    }
+
+    return err;
+}
 
 bool tb_util_is_event_from_topic(esp_mqtt_event_handle_t event, const char *topic)
 {
