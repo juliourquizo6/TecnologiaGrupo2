@@ -4,13 +4,14 @@
 #include "esp_event.h"
 #include "mqtt_client.h"
 #include "sdkconfig.h"
+#include "tb/tb_conn.h"
 #include "tb/tb_nvs.h"
 #include "tb/tb_util.h"
 #include "tb/tb_prov.h"
 
-static void tb_prov_do_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
+static void tb_prov_provision_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
 
-static void tb_prov_do_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
+static void tb_prov_provision_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
     thingsboard *tb = (thingsboard *)event_handler_arg;
     esp_mqtt_event_handle_t event = (esp_mqtt_event_handle_t)event_data;
@@ -27,13 +28,31 @@ static void tb_prov_do_handler(void *event_handler_arg, esp_event_base_t event_b
             goto cleanup_connected;
         }
 
+    cleanup_connected:
+        if (err != ESP_OK)
+        {
+            tb_util_notify(tb, err);
+        }
+
+        break;
+    }
+
+    case MQTT_EVENT_SUBSCRIBED:
+    {
+        if (!tb_util_is_event_from_topic(event, TB_PROV_RESPONSE_TOPIC))
+        {
+            break;
+        }
+
+        esp_err_t err = ESP_OK;
+
         if (esp_mqtt_client_publish(tb->client, TB_PROV_REQUEST_TOPIC, TB_PROV_REQUEST_DATA, 0, 0, 0) < 0)
         {
             err = ESP_FAIL;
-            goto cleanup_connected;
+            goto cleanup_subscribed;
         }
 
-    cleanup_connected:
+cleanup_subscribed:
         if (err != ESP_OK)
         {
             tb_util_notify(tb, err);
@@ -104,47 +123,31 @@ static void tb_prov_do_handler(void *event_handler_arg, esp_event_base_t event_b
     }
 }
 
-esp_err_t tb_prov_do(thingsboard *tb)
+esp_err_t tb_prov_provision(thingsboard *tb)
 {
     assert(tb);
 
     esp_err_t err = ESP_OK;
 
-    // TODO
-    esp_mqtt_client_destroy(tb->client);
-    tb->client = NULL;
+    tb_conn_disconnect(tb);
 
-    esp_mqtt_client_config_t mqtt_cfg = {
-        .broker.address.hostname = tb->host,
-        .broker.address.port = tb->port,
-        .broker.address.transport = tb->cert_pem ? MQTT_TRANSPORT_OVER_SSL : MQTT_TRANSPORT_OVER_TCP,
-        .credentials.username = "provision",
-        .broker.verification.certificate = tb->cert_pem,
-    };
-    tb->client = esp_mqtt_client_init(&mqtt_cfg);
-    if (!tb->client)
-    {
-        err = ESP_FAIL;
-        goto cleanup;
-    }
-
-    err = esp_mqtt_client_register_event(tb->client, ESP_EVENT_ANY_ID, tb_prov_do_handler, (void *)tb);
+    err = tb_set_mqtt_config_with_token(tb, "provision");
     if (err != ESP_OK)
     {
         goto cleanup;
     }
 
-    if (esp_mqtt_client_subscribe(tb->client, TB_PROV_RESPONSE_TOPIC, 0) < 0)
+    err = esp_mqtt_client_register_event(tb->client, ESP_EVENT_ANY_ID, tb_prov_provision_handler, (void *)tb);
+    if (err != ESP_OK)
     {
-        err = ESP_FAIL;
         goto cleanup;
     }
 
     tb_util_clear_notification(tb);
 
-    if (esp_mqtt_client_publish(tb->client, TB_PROV_REQUEST_TOPIC, TB_PROV_REQUEST_DATA, 0, 0, 0) < 0)
+    err = esp_mqtt_client_start(tb->client);
+    if (err != ESP_OK)
     {
-        err = ESP_FAIL;
         goto cleanup;
     }
 
@@ -164,7 +167,7 @@ cleanup:
     return err;
 }
 
-esp_err_t tb_prov_try_and_get_token(thingsboard *tb, char *token, size_t *token_length)
+esp_err_t tb_prov_try_to_provision_and_get_token(thingsboard *tb, char *token, size_t *token_length)
 {
     assert(tb);
 
@@ -179,7 +182,7 @@ esp_err_t tb_prov_try_and_get_token(thingsboard *tb, char *token, size_t *token_
 
     if (!has_token)
     {
-        err = tb_prov_do(tb);
+        err = tb_prov_provision(tb);
         if (err != ESP_OK)
         {
             goto cleanup;
