@@ -3,14 +3,14 @@
 #include "cJSON.h"
 #include "esp_event.h"
 #include "mqtt_client.h"
-#include "tb/tb_conf.h"
+#include "sdkconfig.h"
 #include "tb/tb_nvs.h"
 #include "tb/tb_util.h"
 #include "tb/tb_prov.h"
 
-static void tb_prov_provision_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
+static void tb_prov_do_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
 
-static void tb_prov_provision_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
+static void tb_prov_do_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
     thingsboard *tb = (thingsboard *)event_handler_arg;
     esp_mqtt_event_handle_t event = (esp_mqtt_event_handle_t)event_data;
@@ -104,7 +104,7 @@ static void tb_prov_provision_handler(void *event_handler_arg, esp_event_base_t 
     }
 }
 
-esp_err_t tb_prov_provision(thingsboard *tb)
+esp_err_t tb_prov_do(thingsboard *tb)
 {
     assert(tb);
 
@@ -128,7 +128,7 @@ esp_err_t tb_prov_provision(thingsboard *tb)
         goto cleanup;
     }
 
-    err = esp_mqtt_client_register_event(tb->client, ESP_EVENT_ANY_ID, tb_prov_provision_handler, (void *)tb);
+    err = esp_mqtt_client_register_event(tb->client, ESP_EVENT_ANY_ID, tb_prov_do_handler, (void *)tb);
     if (err != ESP_OK)
     {
         goto cleanup;
@@ -164,7 +164,7 @@ cleanup:
     return err;
 }
 
-esp_err_t tb_prov_try_to_provision_and_get_token(thingsboard *tb, char *token, size_t *token_length)
+esp_err_t tb_prov_try_and_get_token(thingsboard *tb, char *token, size_t *token_length)
 {
     assert(tb);
 
@@ -179,7 +179,7 @@ esp_err_t tb_prov_try_to_provision_and_get_token(thingsboard *tb, char *token, s
 
     if (!has_token)
     {
-        err = tb_prov_provision(tb);
+        err = tb_prov_do(tb);
         if (err != ESP_OK)
         {
             goto cleanup;
