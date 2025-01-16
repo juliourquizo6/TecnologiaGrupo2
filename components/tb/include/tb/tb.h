@@ -35,6 +35,8 @@ struct thingsboard
     char *certificate;
     esp_mqtt_client_handle_t client;
     // TODO: better to use event group because task notification may trigger spuriously
+    // Don't use direct to task notifications as light weight event group alternative
+    // because of conflicts with calling blocking functions on multiple tasks
     TaskHandle_t task;
 };
 
