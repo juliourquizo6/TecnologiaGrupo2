@@ -1,0 +1,20 @@
+menu "Air Quality Monitor Configurations"
+
+config SAMPLE_FREQUENCY
+    int "Frecuencia de lectura (ms)"
+    default 1000
+    range 100 60000
+    help
+        Configura la frecuencia de lectura en milisegundos.
+
+config WORKING_HOURS_START
+    int "Hora de inicio de funcionamiento"
+    default 8
+    range 0 23
+
+config WORKING_HOURS_END
+    int "Hora de fin de funcionamiento"
+    default 22
+    range 0 23
+
+endmenu
