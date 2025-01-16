@@ -4,33 +4,10 @@
 #include "freertos/FreeRTOS.h"
 #include "tb/tb_util.h"
 
-esp_err_t tb_set_mqtt_config_with_token(thingsboard *tb, const char *token)
-{
-    assert(tb);
-
-    esp_err_t err = ESP_OK;
-
-    esp_mqtt_client_config_t mqtt_cfg = {
-        .broker.address.hostname = tb->host,
-        .broker.address.port = tb->port,
-        .broker.address.transport = tb->cert_pem ? MQTT_TRANSPORT_OVER_SSL : MQTT_TRANSPORT_OVER_TCP,
-        .credentials.username = token,
-        .broker.verification.certificate = tb->cert_pem,
-    };
-    err = esp_mqtt_set_config(tb->client, &mqtt_cfg);
-    if (err != ESP_OK)
-    {
-        goto cleanup;
-    }
-
-cleanup:
-    return err;
-}
-
-esp_err_t tb_util_topic_from_topic_levels(const char *topics_levels[], size_t topics_levels_length, char **topic)
+esp_err_t tb_util_topic_from_topic_levels(const char *topics_levels[], size_t topics_levels_length, char **out_topic)
 {
     assert(topics_levels);
-    assert(topic);
+    assert(out_topic);
 
     esp_err_t err = ESP_OK;
 
@@ -42,8 +19,8 @@ esp_err_t tb_util_topic_from_topic_levels(const char *topics_levels[], size_t to
     }
     topic_length += strlen(topics_levels[topics_levels_length - 1]);
 
-    *topic = (char *)malloc(topic_length + 1);
-    if (!*topic)
+    char *topic = (char *)malloc(topic_length + 1);
+    if (!topic)
     {
         err = ESP_ERR_NO_MEM;
         goto cleanup;
@@ -51,15 +28,18 @@ esp_err_t tb_util_topic_from_topic_levels(const char *topics_levels[], size_t to
 
     for (size_t i = 0; i < topics_levels_length - 1; ++i)
     {
-        strcat(*topic, topics_levels[i]);
-        strcat(*topic, "/");
+        strcat(topic, topics_levels[i]);
+        strcat(topic, "/");
     }
-    strcat(*topic, topics_levels[topics_levels_length - 1]);
+    strcat(topic, topics_levels[topics_levels_length - 1]);
+
+    *out_topic = topic;
+    topic = NULL;
 
 cleanup:
-    if (err != ESP_OK && *topic)
+    if (topic)
     {
-        free(*topic);
+        free(topic);
     }
 
     return err;
@@ -73,16 +53,37 @@ bool tb_util_is_event_from_topic(esp_mqtt_event_handle_t event, const char *topi
     return event->topic_len == strlen(topic) && strncmp(event->topic, topic, event->topic_len) == 0;
 }
 
-void tb_util_clear_notification(thingsboard *tb)
+esp_err_t tb_set_mqtt_config_with_token(const thingsboard *tb, const char *token)
 {
     assert(tb);
 
-    tb->task = xTaskGetCurrentTaskHandle();
+    esp_err_t err = ESP_OK;
 
-    xTaskNotifyStateClear(tb->task);
+    esp_mqtt_client_config_t mqtt_cfg = {
+        .broker.address.hostname = tb->hostname,
+        .broker.address.port = tb->port,
+        .broker.address.transport = tb->certificate ? MQTT_TRANSPORT_OVER_SSL : MQTT_TRANSPORT_OVER_TCP,
+        .broker.verification.certificate = tb->certificate,
+        .credentials.username = token,
+    };
+    err = esp_mqtt_set_config(tb->client, &mqtt_cfg);
+    if (err != ESP_OK)
+    {
+        goto cleanup;
+    }
+
+cleanup:
+    return err;
 }
 
-esp_err_t tb_util_wait_for_notification(thingsboard *tb)
+void tb_util_notify(const thingsboard *tb, esp_err_t err)
+{
+    assert(tb);
+
+    xTaskNotify(tb->task, (uint32_t)err, eSetValueWithOverwrite);
+}
+
+esp_err_t tb_util_wait_for_notification(const thingsboard *tb)
 {
     assert(tb);
 
@@ -98,9 +99,10 @@ cleanup:
     return err;
 }
 
-void tb_util_notify(thingsboard *tb, esp_err_t err)
+void tb_util_clear_notification(thingsboard *tb)
 {
     assert(tb);
 
-    xTaskNotify(tb->task, (uint32_t)err, eSetValueWithOverwrite);
+    tb->task = xTaskGetCurrentTaskHandle();
+    xTaskNotifyStateClear(tb->task);
 }
