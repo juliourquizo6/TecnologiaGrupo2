@@ -6,9 +6,9 @@
 #include "tb/tb_util.h"
 #include "tb/tb_conn.h"
 
-static void tb_conn_connect_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
+static void tb_conn_start_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
 
-static void tb_conn_connect_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
+static void tb_conn_start_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
     const thingsboard *tb = (const thingsboard *)event_handler_arg;
     esp_mqtt_event_handle_t event = (esp_mqtt_event_handle_t)event_data;
@@ -54,7 +54,7 @@ static void tb_conn_connect_handler(void *event_handler_arg, esp_event_base_t ev
     }
 }
 
-esp_err_t tb_conn_connect(thingsboard *tb)
+esp_err_t tb_conn_start(thingsboard *tb)
 {
     assert(tb);
 
@@ -76,7 +76,7 @@ esp_err_t tb_conn_connect(thingsboard *tb)
         goto cleanup;
     }
 
-    err = esp_mqtt_client_register_event(tb->client, ESP_EVENT_ANY_ID, tb_conn_connect_handler, (void *)tb);
+    err = esp_mqtt_client_register_event(tb->client, ESP_EVENT_ANY_ID, tb_conn_start_handler, (void *)tb);
     if (err != ESP_OK)
     {
         goto cleanup;
@@ -93,7 +93,31 @@ esp_err_t tb_conn_connect(thingsboard *tb)
     err = tb_util_wait_for_notification(tb);
     if (err != ESP_OK)
     {
-        tb_conn_disconnect(tb);
+        tb_conn_stop(tb);
+        goto cleanup;
+    }
+
+cleanup:
+    return err;
+}
+
+esp_err_t tb_conn_stop(thingsboard *tb)
+{
+    assert(tb);
+
+    esp_err_t err = ESP_OK;
+
+    tb_util_clear_notification(tb);
+
+    err = esp_mqtt_client_stop(tb->client);
+    if (err != ESP_OK)
+    {
+        goto cleanup;
+    }
+
+    err = tb_util_wait_for_notification(tb);
+    if (err != ESP_OK)
+    {
         goto cleanup;
     }
 
@@ -110,30 +134,6 @@ esp_err_t tb_conn_reconnect(thingsboard *tb)
     tb_util_clear_notification(tb);
 
     err = esp_mqtt_client_reconnect(tb->client);
-    if (err != ESP_OK)
-    {
-        goto cleanup;
-    }
-
-    err = tb_util_wait_for_notification(tb);
-    if (err != ESP_OK)
-    {
-        goto cleanup;
-    }
-
-cleanup:
-    return err;
-}
-
-esp_err_t tb_conn_disconnect(thingsboard *tb)
-{
-    assert(tb);
-
-    esp_err_t err = ESP_OK;
-
-    tb_util_clear_notification(tb);
-
-    err = esp_mqtt_client_stop(tb->client);
     if (err != ESP_OK)
     {
         goto cleanup;

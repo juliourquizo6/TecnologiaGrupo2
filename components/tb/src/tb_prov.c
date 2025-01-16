@@ -165,7 +165,7 @@ esp_err_t tb_prov_provision(thingsboard *tb)
     err = tb_util_wait_for_notification(tb);
     if (err != ESP_OK)
     {
-        tb_conn_disconnect(tb);
+        tb_conn_stop(tb);
         goto cleanup;
     }
 
