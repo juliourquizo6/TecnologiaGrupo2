@@ -142,8 +142,6 @@ esp_err_t tb_prov_provision(thingsboard *tb)
 
     esp_err_t err = ESP_OK;
 
-    tb_conn_disconnect(tb);
-
     err = tb_set_mqtt_config_with_token(tb, "provision");
     if (err != ESP_OK)
     {
