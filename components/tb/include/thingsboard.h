@@ -1,5 +1,5 @@
-#ifndef TB_H
-#define TB_H
+#ifndef THINGSBOARD_H
+#define THINGSBOARD_H
 
 #include "tb/tb_attr.h"
 #include "tb/tb_conn.h"
