@@ -3,7 +3,6 @@
 #include "cJSON.h"
 #include "esp_event.h"
 #include "mqtt_client.h"
-#include "sdkconfig.h"
 #include "tb/tb_conn.h"
 #include "tb/tb_nvs.h"
 #include "tb/tb_util.h"
@@ -13,7 +12,7 @@ static void tb_prov_provision_handler(void *event_handler_arg, esp_event_base_t 
 
 static void tb_prov_provision_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
 {
-    thingsboard *tb = (thingsboard *)event_handler_arg;
+    const thingsboard *tb = (const thingsboard *)event_handler_arg;
     esp_mqtt_event_handle_t event = (esp_mqtt_event_handle_t)event_data;
 
     switch (event->event_id)
@@ -52,7 +51,7 @@ static void tb_prov_provision_handler(void *event_handler_arg, esp_event_base_t 
             goto cleanup_subscribed;
         }
 
-cleanup_subscribed:
+    cleanup_subscribed:
         if (err != ESP_OK)
         {
             tb_util_notify(tb, err);
@@ -92,6 +91,19 @@ cleanup_subscribed:
             goto cleanup_data;
         }
 
+        cJSON *credentials_type_json = cJSON_GetObjectItem(data_json, "credentialsType");
+        if (!credentials_type_json)
+        {
+            err = ESP_FAIL;
+            goto cleanup_data;
+        }
+
+        if (strcmp(credentials_type_json->valuestring, "ACCESS_TOKEN") != 0)
+        {
+            err = ESP_FAIL;
+            goto cleanup_data;
+        }
+
         cJSON *token_json = cJSON_GetObjectItem(data_json, "credentialsValue");
         if (!token_json)
         {
@@ -109,6 +121,7 @@ cleanup_subscribed:
         if (data_json)
         {
             cJSON_Delete(data_json);
+            data_json = NULL;
         }
 
         tb_util_notify(tb, err);
@@ -154,20 +167,15 @@ esp_err_t tb_prov_provision(thingsboard *tb)
     err = tb_util_wait_for_notification(tb);
     if (err != ESP_OK)
     {
+        tb_conn_disconnect(tb);
         goto cleanup;
     }
 
 cleanup:
-    if (tb->client)
-    {
-        esp_mqtt_client_destroy(tb->client);
-        tb->client = NULL;
-    }
-
     return err;
 }
 
-esp_err_t tb_prov_try_to_provision_and_get_token(thingsboard *tb, char *token, size_t *token_length)
+esp_err_t tb_prov_try_to_provision_and_get_token(thingsboard *tb, char *token, size_t token_length)
 {
     assert(tb);
 
