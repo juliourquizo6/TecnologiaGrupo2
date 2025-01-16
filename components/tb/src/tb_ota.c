@@ -5,15 +5,15 @@
 
 static void tb_ota_subscribe_to_update_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
 
-esp_err_t tb_ota_update(const char *url, const char *cert_pem)
+esp_err_t tb_ota_update(const char *url, const char *certificate)
 {
-    assert(cert_pem);
+    assert(certificate);
 
     esp_err_t err = ESP_OK;
 
     esp_http_client_config_t https_cfg = {
         .url = url,
-        .cert_pem = cert_pem,
+        .cert_pem = certificate,
     };
     esp_https_ota_config_t ota_cfg = {
         .http_config = &https_cfg,

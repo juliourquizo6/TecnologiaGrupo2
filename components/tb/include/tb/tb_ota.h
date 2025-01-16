@@ -4,7 +4,7 @@
 #include "esp_err.h"
 #include "tb/tb.h"
 
-esp_err_t tb_ota_update(const char *url, const char *cert_pem);
+esp_err_t tb_ota_update(const char *url, const char *certificate);
 esp_err_t tb_ota_subscribe_to_update(thingsboard *tb);
 
 #endif
