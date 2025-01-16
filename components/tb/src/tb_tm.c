@@ -3,7 +3,7 @@
 #include "mqtt_client.h"
 #include "tb/tb_tm.h"
 
-esp_err_t tb_tm_send(thingsboard *tb, const char *data)
+esp_err_t tb_tm_send(const thingsboard *tb, const char *data)
 {
     assert(tb);
     assert(data);
@@ -20,7 +20,7 @@ cleanup:
     return err;
 }
 
-esp_err_t tb_tm_send_json(thingsboard *tb, const cJSON *data_json)
+esp_err_t tb_tm_send_json(const thingsboard *tb, const cJSON *data_json)
 {
     assert(tb);
     assert(data_json);
@@ -29,7 +29,7 @@ esp_err_t tb_tm_send_json(thingsboard *tb, const cJSON *data_json)
 
     esp_err_t err = ESP_OK;
 
-    data = cJSON_Print(data_json);
+    data = cJSON_PrintUnformatted(data_json);
     if (!data)
     {
         err = ESP_FAIL;
