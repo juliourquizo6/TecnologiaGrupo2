@@ -2,7 +2,7 @@
 #include "esp_netif.h"
 #include "nvs_flash.h"
 #include "protocol_examples_common.h"
-#include "tb.h"
+#include "thingsboard.h"
 
 void app_main(void)
 {
