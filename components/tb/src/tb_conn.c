@@ -42,6 +42,8 @@ static void tb_conn_connect_handler(void *event_handler_arg, esp_event_base_t ev
         }
 
     cleanup_disconnected:
+        tb_util_notify(tb, err);
+
         break;
     }
 
@@ -99,13 +101,45 @@ cleanup:
     return err;
 }
 
-esp_err_t tb_conn_disconnect(const thingsboard *tb)
+esp_err_t tb_conn_reconnect(thingsboard *tb)
 {
     assert(tb);
 
     esp_err_t err = ESP_OK;
 
+    tb_util_clear_notification(tb);
+
+    err = esp_mqtt_client_reconnect(tb->client);
+    if (err != ESP_OK)
+    {
+        goto cleanup;
+    }
+
+    err = tb_util_wait_for_notification(tb);
+    if (err != ESP_OK)
+    {
+        goto cleanup;
+    }
+
+cleanup:
+    return err;
+}
+
+esp_err_t tb_conn_disconnect(thingsboard *tb)
+{
+    assert(tb);
+
+    esp_err_t err = ESP_OK;
+
+    tb_util_clear_notification(tb);
+
     err = esp_mqtt_client_stop(tb->client);
+    if (err != ESP_OK)
+    {
+        goto cleanup;
+    }
+
+    err = tb_util_wait_for_notification(tb);
     if (err != ESP_OK)
     {
         goto cleanup;
