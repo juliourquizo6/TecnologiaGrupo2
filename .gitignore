@@ -1,5 +1,6 @@
 .vscode/
 build/
 managed_components/
+test/
 sdkconfig
 sdkconfig.old
