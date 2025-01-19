@@ -29,6 +29,8 @@ void tb_destroy(thingsboard *tb);
 struct thingsboard
 {
     esp_event_loop_handle_t event_loop;
+    // TODO: must use URI (not hostname and port)
+    // Also, dont set transport (TCP, SSL), it is set by the uri
     char *hostname;
     uint32_t port;
     char *topic;
