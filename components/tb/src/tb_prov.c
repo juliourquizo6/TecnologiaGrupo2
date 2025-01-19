@@ -71,7 +71,7 @@ static void tb_prov_provision_handler(void *event_handler_arg, esp_event_base_t 
 
         esp_err_t err = ESP_OK;
 
-        data_json = cJSON_Parse(event->data);
+        data_json = cJSON_ParseWithLength(event->data, event->data_len);
         if (!data_json)
         {
             err = ESP_FAIL;
@@ -85,7 +85,14 @@ static void tb_prov_provision_handler(void *event_handler_arg, esp_event_base_t 
             goto cleanup_data;
         }
 
-        if (strcmp(status_json->valuestring, "SUCCESS") != 0)
+        char *status = cJSON_GetStringValue(status_json);
+        if (!status)
+        {
+            err = ESP_FAIL;
+            goto cleanup_data;
+        }
+
+        if (strcmp(status, "SUCCESS") != 0)
         {
             err = ESP_FAIL;
             goto cleanup_data;
@@ -98,7 +105,14 @@ static void tb_prov_provision_handler(void *event_handler_arg, esp_event_base_t 
             goto cleanup_data;
         }
 
-        if (strcmp(credentials_type_json->valuestring, "ACCESS_TOKEN") != 0)
+        char *credentials_type = cJSON_GetStringValue(credentials_type_json);
+        if (!credentials_type)
+        {
+            err = ESP_FAIL;
+            goto cleanup_data;
+        }
+
+        if (strcmp(credentials_type, "ACCESS_TOKEN") != 0)
         {
             err = ESP_FAIL;
             goto cleanup_data;
@@ -111,7 +125,14 @@ static void tb_prov_provision_handler(void *event_handler_arg, esp_event_base_t 
             goto cleanup_data;
         }
 
-        err = tb_nvs_set_token(token_json->valuestring);
+        char *token = cJSON_GetStringValue(token_json);
+        if (!token)
+        {
+            err = ESP_FAIL;
+            goto cleanup_data;
+        }
+
+        err = tb_nvs_set_token(token);
         if (err != ESP_OK)
         {
             goto cleanup_data;

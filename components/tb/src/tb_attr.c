@@ -159,8 +159,8 @@ static void tb_attr_request_handler(const char *attribute_key, int32_t attribute
 
         esp_err_t err = ESP_OK;
 
-        data_json = cJSON_Parse(event->data);
-        if (!data)
+        data_json = cJSON_ParseWithLength(event->data, event->data_len);
+        if (!data_json)
         {
             err = ESP_FAIL;
             goto cleanup_data;
@@ -173,14 +173,14 @@ static void tb_attr_request_handler(const char *attribute_key, int32_t attribute
             goto cleanup_data;
         }
 
-        data = cJSON_Print(attribute_json);
+        data = cJSON_PrintUnformatted(attribute_json);
         if (!data)
         {
             err = ESP_FAIL;
             goto cleanup_data;
         }
 
-        err = esp_event_post_to(tb->event_loop, TB_EVENTS, attribute_event_id, data, strlen(data), TB_UTIL_TIMEOUT_TICKS);
+        err = esp_event_post_to(tb->event_loop, TB_EVENTS, attribute_event_id, data, strlen(data) + 1, TB_UTIL_TIMEOUT_TICKS);
         if (err != ESP_OK)
         {
             goto cleanup_data;
