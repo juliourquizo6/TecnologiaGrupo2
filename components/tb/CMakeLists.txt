@@ -1,3 +1,4 @@
-idf_component_register(SRC_DIRS src
-                       INCLUDE_DIRS include
-                       REQUIRES esp_event esp_https_ota mqtt json nvs_flash)
+idf_component_register(SRCS "tb.c"
+                       INCLUDE_DIRS "."
+                       REQUIRES esp_event mqtt
+                       PRIV_REQUIRES json esp_app_format esp_https_ota nvs_flash)
