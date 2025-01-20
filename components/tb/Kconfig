@@ -1,30 +1,15 @@
-menu "ThingsBoard Configuration"
+menu "ThingsBoard Configurations"
 
-    config TB_TOKEN
-        string "Access token"
+    config TB_DEVICE_NAME
+        string "Device name in ThingsBoard"
         default ""
-        help
-            This option sets the access token used for authenticating the device with the cloud.
 
-    config TB_DEVICE_KEY
-        string "Provisioning device secret"
+    config TB_PROVISION_DEVICE_KEY
+        string "Provisioning device key, you should take it from configured device profile"
         default ""
-        help
-            This option sets the provisioning device key used during the initial connection
-            to the ThingsBoard cloud. It is required for authenticating the device during provisioning.
 
-    config TB_DEVICE_SECRET
-        string "Provisioning device secret"
+    config TB_PROVISION_DEVICE_SECRET
+        string "Provisioning device secret, you should take it from configured device profile"
         default ""
-        help
-            This option sets the provisioning device secret used during the initial connection
-            to the ThingsBoard cloud. It is required for authenticating the device during provisioning.
-
-    config TB_TIMEOUT_MS
-        int "Timeout in milliseconds for blocking operations"
-        default 10000
-        help
-            This option sets the timeout duration in milliseconds for blocking operations
-            such as network requests and event handling.
 
 endmenu
