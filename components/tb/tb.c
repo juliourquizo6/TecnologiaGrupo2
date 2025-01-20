@@ -184,7 +184,6 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
     char *http_url = NULL;
     cJSON *root = NULL;
     char *root_data = NULL;
-    char *user_data = NULL;
 
     esp_err_t err = ESP_OK;
 
@@ -573,13 +572,9 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
 
     case MQTT_USER_EVENT:
     {
-        user_data = mqtt_event->data;
+        esp_mqtt_client_publish(mqtt_event->client, tb->topic, user_data, 0, 0, 0);
 
-        if (esp_mqtt_client_publish(mqtt_event->client, tb->topic, user_data, 0, 0, 0) < 0)
-        {
-            err = ESP_FAIL;
-            goto cleanup;
-        }
+        free(mqtt_event->data);
 
         break;
     }
@@ -594,12 +589,6 @@ cleanup:
     if (err != ESP_OK)
     {
         esp_mqtt_client_disconnect(mqtt_event->client);
-    }
-
-    if (user_data)
-    {
-        free(user_data);
-        user_data = NULL;
     }
 
     if (root_data)
