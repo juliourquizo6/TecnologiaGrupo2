@@ -557,11 +557,13 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
 
                     esp_restart();
                 }
-
-                if (esp_mqtt_client_publish(mqtt_event->client, tb->topic, "{\"fw_state\":\"UPDATED\"}", 0, 0, 0) < 0)
+                else
                 {
-                    err = ESP_FAIL;
-                    goto cleanup;
+                    if (esp_mqtt_client_publish(mqtt_event->client, tb->topic, "{\"fw_state\":\"UPDATED\"}", 0, 0, 0) < 0)
+                    {
+                        err = ESP_FAIL;
+                        goto cleanup;
+                    }
                 }
             }
         }
