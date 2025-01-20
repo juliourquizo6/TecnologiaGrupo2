@@ -2,10 +2,6 @@
 #include "esp_event.h"
 #include "mqtt_client.h"
 
-#define CONFIG_TB_DEVICE_NAME ""
-#define CONFIG_TB_PROVISION_DEVICE_KEY ""
-#define CONFIG_TB_PROVISION_DEVICE_SECRET ""
-
 #define ACCESS_TOKEN_LEN_MAX 32
 
 ESP_EVENT_DECLARE_BASE(TB_EVENTS);
