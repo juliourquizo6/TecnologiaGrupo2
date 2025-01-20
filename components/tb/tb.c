@@ -12,9 +12,9 @@ ESP_EVENT_DEFINE_BASE(TB_EVENTS);
 
 static void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
 
-esp_err_t tb_create(thingsboard *tb, const char *hostname, const char *telemetry_topic, const char *certificate, esp_event_handler_t event_handler, void *event_handler_arg)
+esp_err_t tb_create(thingsboard *out_tb, const char *hostname, const char *telemetry_topic, const char *certificate, esp_event_handler_t event_handler, void *event_handler_arg)
 {
-    assert(tb);
+    assert(out_tb);
 
     if (!hostname)
     {
@@ -26,14 +26,7 @@ esp_err_t tb_create(thingsboard *tb, const char *hostname, const char *telemetry
         telemetry_topic = "v1/devices/me/telemetry";
     }
 
-    *tb = (thingsboard){
-        .hostname = NULL,
-        .telemetry_topic = NULL,
-        .certificate = NULL,
-        .event_loop = NULL,
-        .mqtt_client = NULL,
-        .access_token = "",
-    };
+    thingsboard *tb = &(thingsboard){0};
 
     esp_err_t err = ESP_OK;
 
@@ -83,10 +76,14 @@ esp_err_t tb_create(thingsboard *tb, const char *hostname, const char *telemetry
         goto cleanup;
     }
 
+    *out_tb = *tb;
+    tb = NULL;
+
 cleanup:
-    if (err != ESP_OK)
+    if (tb)
     {
         tb_delete(tb);
+        tb = NULL;
     }
 
     return err;
@@ -100,7 +97,7 @@ esp_err_t tb_delete(thingsboard *tb)
 
     if (tb->mqtt_client)
     {
-        err = esp_mqtt_client_destroy(tb->mqtt_client);
+        esp_mqtt_client_destroy(tb->mqtt_client);
         tb->mqtt_client = NULL;
     }
 
