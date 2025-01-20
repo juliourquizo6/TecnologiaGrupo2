@@ -4,15 +4,15 @@
 #include "sdkconfig.h"
 #include "esp_err.h"
 #include "esp_mac.h"
-#include "freertos/FreeRTOS.h"
 #include "sdkconfig.h"
 #include "driver/i2c.h"
 #include <esp_timer.h>
 #include <esp_log.h>
+#include "sensor_co2.h"
 
 #define T_LECTURA  CONFIG_T_LECTURA
 #define T_ENVIO    CONFIG_T_ENVIO
-#define MAX_INDICE (T_ENVIO / T_LECTURA)
+#define QUEUE_LENGTH 32
 
 static const char* TAG = "SGP30";
 
@@ -20,10 +20,8 @@ i2c_port_t i2c_num = I2C_MASTER_NUM;
 sgp30_dev_t sgp30_sensor;
 esp_timer_handle_t tm_lectura_handle;
 esp_timer_handle_t tm_envio_handle;
-
-
-uint16_t eco2_lectura[MAX_INDICE];
-int eco2_lectura_indice = 0;
+QueueHandle_t queue_timers_handle;
+sensor_co2_handler sensor_handler;
 
 /* I2C */
 // Inicializacion
@@ -106,19 +104,29 @@ int8_t main_i2c_write(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *i
 }
 
 
-
 /* TIMERS */
 // Callbacks
 static void tm_lectura(void* arg) {
     sgp30_IAQ_measure(&sgp30_sensor);
-    eco2_lectura[eco2_lectura_indice] = sgp30_sensor.eCO2;
-    eco2_lectura_indice ++;
+    struct data_sensor_co2 data = {
+        .CO2 = sgp30_sensor.eCO2,
+        .TVOC = sgp30_sensor.TVOC,
+    };
+    
+    xQueueSend(queue_timers_handle, &data, 0);
 }
 
 
 static void tm_envio(void* arg) {
     // Envio de datos.
+    struct data_sensor_co2 data;
+    
+    if (xQueueReceive(queue_timers_handle, &data, 0, ) == pdTRUE) {
+        // TODO: COnvertir data a json. COnvertir JSON a string. EN vez de pasar data, pasar el string creado.
+        sensor_handler(data);
+    }
 }
+
 
 // Inicializacion
 static void timers_init(void) {
@@ -142,16 +150,9 @@ static void timers_init(void) {
 
 // Activacion
 void set_timers() {
-    ESP_ERROR_CHECK(esp_timer_start_periodic(tm_lectura_handle, (T_LECTURA * 1000)));
-    ESP_ERROR_CHECK(esp_timer_start_periodic(tm_envio_handle, (T_ENVIO * 1000)));
+    ESP_ERROR_CHECK(esp_timer_start_periodic(tm_lectura_handle, pdMS_TO_TICKS(T_LECTURA)));
+    ESP_ERROR_CHECK(esp_timer_start_periodic(tm_envio_handle, pdMS_TO_TICKS(T_ENVIO)));
 }
-
-// Paro
-void stop_timers() {
-    esp_timer_stop(tm_lectura_handle);
-    esp_timer_stop(tm_envio_handle);
-}
-
 
 /* SGP30 */
 // Inicializacion
@@ -172,27 +173,22 @@ static void sgp30_co2_init(void) {
     }
     sgp30_get_IAQ_baseline(&sgp30_sensor, &eco2_baseline, &tvoc_baseline);
 
+    timers_init();
+
+    set_timers();
 }
 
-// Funciones: Datos obtenidos
-uint16_t sgp30_datos() {
-    
-    uint16_t datos[sizeof(eco2_lectura)];
 
-    // Se copia los datos de lectura
-    for (int i = 0; i < 5; i++) {
-        datos[i] = eco2_lectura[i];
-    }
-
-    // Se vacia el array principal
-    for (int i = 0; i < 10; i++) {
-        eco2_lectura[i] = 0;
-    }
-
-    // Resetear indice
-    eco2_lectura_indice = 0;
-
-    // Se envia el array nuevo
-    return datos;
+void sensor_co2_create(sensor_co2_handler handler){
+    sensor_handler = handler;
+    queue_timers_handle = xQueueCreate(QUEUE_LENGTH, sizeof(struct data_sensor_co2));
+    sgp30_co2_init();
 }
 
+void sensor_co2_set_frecuencia_lectura(int frec){
+    ESP_ERROR_CHECK(esp_timer_restart(tm_lectura_handle, pdMS_TO_TICKS(frec)));
+}
+
+void sensor_co2_set_frecuencia_envio(int frec) {
+    ESP_ERROR_CHECK(esp_timer_restart(tm_envio_handle, pdMS_TO_TICKS(frec)));
+}
