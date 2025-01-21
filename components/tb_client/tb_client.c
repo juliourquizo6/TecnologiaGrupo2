@@ -16,9 +16,9 @@ typedef struct tb_client *tb_client_handle_t;
 
 struct tb_client
 {
-    char *hostname;
-    char *telemetry_topic;
-    void (*attributes_callback)(const cJSON *);
+    char *host;
+    char *topic;
+    void (*callback)(const cJSON *);
     char *access_token;
     esp_mqtt_client_handle_t mqtt_client_handle;
 };
@@ -28,16 +28,16 @@ static tb_client_handle_t s_tb_client_handle = &s_tb_client;
 
 static void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
 
-esp_err_t tb_client_init(const char *hostname, const char *telemetry_topic, void (*attributes_callback)(const cJSON *))
+esp_err_t tb_client_init(const char *host, const char *topic, void (*callback)(const cJSON *))
 {
-    if (!hostname)
+    if (!host)
     {
-        hostname = "demo.thingsboard.io";
+        host = "demo.thingsboard.io";
     }
 
-    if (!telemetry_topic)
+    if (!topic)
     {
-        telemetry_topic = "v1/devices/me/telemetry";
+        topic = "v1/devices/me/telemetry";
     }
 
     tb_client_handle_t tb_client_handle = NULL;
@@ -53,11 +53,11 @@ esp_err_t tb_client_init(const char *hostname, const char *telemetry_topic, void
     tb_client_t tb_client = {0};
     tb_client_handle = &tb_client;
 
-    tb_client_handle->hostname = strdup(hostname);
+    tb_client_handle->host = strdup(host);
 
-    tb_client_handle->telemetry_topic = strdup(telemetry_topic);
+    tb_client_handle->topic = strdup(topic);
 
-    tb_client_handle->attributes_callback = attributes_callback;
+    tb_client_handle->callback = callback;
 
     tb_client_handle->access_token = NULL;
 
@@ -100,21 +100,21 @@ cleanup:
             tb_client_handle->access_token = NULL;
         }
 
-        if (tb_client_handle->attributes_callback)
+        if (tb_client_handle->callback)
         {
-            tb_client_handle->attributes_callback = NULL;
+            tb_client_handle->callback = NULL;
         }
 
-        if (tb_client_handle->telemetry_topic)
+        if (tb_client_handle->topic)
         {
-            free(tb_client_handle->telemetry_topic);
-            tb_client_handle->telemetry_topic = NULL;
+            free(tb_client_handle->topic);
+            tb_client_handle->topic = NULL;
         }
 
-        if (tb_client_handle->hostname)
+        if (tb_client_handle->host)
         {
-            free(tb_client_handle->hostname);
-            tb_client_handle->hostname = NULL;
+            free(tb_client_handle->host);
+            tb_client_handle->host = NULL;
         }
     }
 
@@ -229,7 +229,7 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
         const char *mqtt_client_uri_scheme = "mqtt";
 #endif
 
-        int mqtt_client_uri_len = snprintf(NULL, 0, "%s://%s", mqtt_client_uri_scheme, tb_client_handle->hostname);
+        int mqtt_client_uri_len = snprintf(NULL, 0, "%s://%s", mqtt_client_uri_scheme, tb_client_handle->host);
         if (mqtt_client_uri_len < 0)
         {
             err = ESP_FAIL;
@@ -245,7 +245,7 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
 
         *mqtt_client_uri = '\0';
 
-        if (snprintf(mqtt_client_uri, mqtt_client_uri_len + 1, "%s://%s", mqtt_client_uri_scheme, tb_client_handle->hostname) < 0)
+        if (snprintf(mqtt_client_uri, mqtt_client_uri_len + 1, "%s://%s", mqtt_client_uri_scheme, tb_client_handle->host) < 0)
         {
             err = ESP_FAIL;
             goto cleanup;
@@ -351,9 +351,9 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
                 goto cleanup;
             }
 
-            if (tb_client_handle->attributes_callback)
+            if (tb_client_handle->callback)
             {
-                tb_client_handle->attributes_callback(attributes);
+                tb_client_handle->callback(attributes);
             }
 
             cJSON *fw_title = cJSON_GetObjectItem(attributes, "fw_title");
@@ -404,7 +404,7 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
                     goto cleanup;
                 }
 
-                if (esp_mqtt_client_publish(tb_client_handle->mqtt_client_handle, tb_client_handle->telemetry_topic, current_fw_data, 0, 0, 0) < 0)
+                if (esp_mqtt_client_publish(tb_client_handle->mqtt_client_handle, tb_client_handle->topic, current_fw_data, 0, 0, 0) < 0)
                 {
                     err = ESP_FAIL;
                     goto cleanup;
@@ -412,7 +412,7 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
 
                 if (strcmp(fw_title_data, current_fw_title_data) != 0 || strcmp(fw_version_data, current_fw_version_data) != 0)
                 {
-                    if (esp_mqtt_client_publish(tb_client_handle->mqtt_client_handle, tb_client_handle->telemetry_topic, "{\"fw_state\":\"DOWNLOADING\"}", 0, 0, 0) < 0)
+                    if (esp_mqtt_client_publish(tb_client_handle->mqtt_client_handle, tb_client_handle->topic, "{\"fw_state\":\"DOWNLOADING\"}", 0, 0, 0) < 0)
                     {
                         err = ESP_FAIL;
                         goto cleanup;
@@ -424,7 +424,7 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
                     const char *http_client_url_scheme = "http";
 #endif
 
-                    int http_client_url_len = snprintf(NULL, 0, "%s://%s/api/v1/%s/firmware?title=%s&version=%s", http_client_url_scheme, tb_client_handle->hostname, tb_client_handle->access_token, fw_title_data, fw_version_data);
+                    int http_client_url_len = snprintf(NULL, 0, "%s://%s/api/v1/%s/firmware?title=%s&version=%s", http_client_url_scheme, tb_client_handle->host, tb_client_handle->access_token, fw_title_data, fw_version_data);
                     if (http_client_url_len < 0)
                     {
                         err = ESP_FAIL;
@@ -440,7 +440,7 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
 
                     *http_client_url = '\0';
 
-                    if (snprintf(http_client_url, http_client_url_len + 1, "%s://%s/api/v1/%s/firmware?title=%s&version=%s", http_client_url_scheme, tb_client_handle->hostname, tb_client_handle->access_token, fw_title_data, fw_version_data) < 0)
+                    if (snprintf(http_client_url, http_client_url_len + 1, "%s://%s/api/v1/%s/firmware?title=%s&version=%s", http_client_url_scheme, tb_client_handle->host, tb_client_handle->access_token, fw_title_data, fw_version_data) < 0)
                     {
                         err = ESP_FAIL;
                         goto cleanup;
@@ -464,7 +464,7 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
                     err = esp_https_ota(&https_ota_config);
                     if (err != ESP_OK)
                     {
-                        if (esp_mqtt_client_publish(tb_client_handle->mqtt_client_handle, tb_client_handle->telemetry_topic, "{\"fw_state\":\"FAILED\"}", 0, 0, 0) < 0)
+                        if (esp_mqtt_client_publish(tb_client_handle->mqtt_client_handle, tb_client_handle->topic, "{\"fw_state\":\"FAILED\"}", 0, 0, 0) < 0)
                         {
                             err = ESP_FAIL;
                             goto cleanup;
@@ -473,19 +473,19 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
                         goto cleanup;
                     }
 
-                    if (esp_mqtt_client_publish(tb_client_handle->mqtt_client_handle, tb_client_handle->telemetry_topic, "{\"fw_state\":\"DOWNLOADED\"}", 0, 0, 0) < 0)
+                    if (esp_mqtt_client_publish(tb_client_handle->mqtt_client_handle, tb_client_handle->topic, "{\"fw_state\":\"DOWNLOADED\"}", 0, 0, 0) < 0)
                     {
                         err = ESP_FAIL;
                         goto cleanup;
                     }
 
-                    if (esp_mqtt_client_publish(tb_client_handle->mqtt_client_handle, tb_client_handle->telemetry_topic, "{\"fw_state\":\"VERIFIED\"}", 0, 0, 0) < 0)
+                    if (esp_mqtt_client_publish(tb_client_handle->mqtt_client_handle, tb_client_handle->topic, "{\"fw_state\":\"VERIFIED\"}", 0, 0, 0) < 0)
                     {
                         err = ESP_FAIL;
                         goto cleanup;
                     }
 
-                    if (esp_mqtt_client_publish(tb_client_handle->mqtt_client_handle, tb_client_handle->telemetry_topic, "{\"fw_state\":\"UPDATING\"}", 0, 0, 0) < 0)
+                    if (esp_mqtt_client_publish(tb_client_handle->mqtt_client_handle, tb_client_handle->topic, "{\"fw_state\":\"UPDATING\"}", 0, 0, 0) < 0)
                     {
                         err = ESP_FAIL;
                         goto cleanup;
@@ -495,7 +495,7 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
                 }
                 else
                 {
-                    if (esp_mqtt_client_publish(tb_client_handle->mqtt_client_handle, tb_client_handle->telemetry_topic, "{\"fw_state\":\"UPDATED\"}", 0, 0, 0) < 0)
+                    if (esp_mqtt_client_publish(tb_client_handle->mqtt_client_handle, tb_client_handle->topic, "{\"fw_state\":\"UPDATED\"}", 0, 0, 0) < 0)
                     {
                         err = ESP_FAIL;
                         goto cleanup;
@@ -618,7 +618,7 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
 
         if (tb_client_handle->access_token)
         {
-            esp_mqtt_client_publish(tb_client_handle->mqtt_client_handle, tb_client_handle->telemetry_topic, user_event_data, 0, 0, 0);
+            esp_mqtt_client_publish(tb_client_handle->mqtt_client_handle, tb_client_handle->topic, user_event_data, 0, 0, 0);
         }
 
         break;
