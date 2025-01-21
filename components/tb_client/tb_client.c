@@ -128,7 +128,7 @@ esp_err_t tb_client_send(const cJSON *data)
 {
     tb_client_handle_t tb_client_handle = s_tb_client_handle;
 
-    char *mqtt_event_data = NULL;
+    char *user_event_data = NULL;
 
     esp_err_t err = ESP_OK;
 
@@ -138,15 +138,15 @@ esp_err_t tb_client_send(const cJSON *data)
         goto cleanup;
     }
 
-    mqtt_event_data = cJSON_PrintUnformatted(data);
-    if (!mqtt_event_data)
+    user_event_data = cJSON_PrintUnformatted(data);
+    if (!user_event_data)
     {
         err = ESP_FAIL;
         goto cleanup;
     }
 
     esp_mqtt_event_t mqtt_event = {
-        .data = mqtt_event_data,
+        .data = user_event_data,
     };
 
     err = esp_mqtt_dispatch_custom_event(tb_client_handle->mqtt_client_handle, &mqtt_event);
@@ -155,13 +155,13 @@ esp_err_t tb_client_send(const cJSON *data)
         goto cleanup;
     }
 
-    mqtt_event_data = NULL;
+    user_event_data = NULL;
 
 cleanup:
-    if (mqtt_event_data)
+    if (user_event_data)
     {
-        cJSON_free(mqtt_event_data);
-        mqtt_event_data = NULL;
+        cJSON_free(user_event_data);
+        user_event_data = NULL;
     }
 
     return err;
