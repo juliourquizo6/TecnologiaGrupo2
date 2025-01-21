@@ -14,7 +14,8 @@ typedef struct tb_client *tb_client_handle_t;
 struct tb_client
 {
     char *hostname;
-    const char *certificate;
+    const char *mqtt_client_certificate;
+    const char *http_client_certificate;
     char *telemetry_topic;
     void (*attributes_callback)(const cJSON *);
     char *access_token;
@@ -26,7 +27,7 @@ static tb_client_handle_t s_tb_client_handle = &s_tb_client;
 
 static void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
 
-esp_err_t tb_client_init(const char *hostname, const char *certificate, const char *telemetry_topic, void (*attributes_callback)(const cJSON *))
+esp_err_t tb_client_init(const char *hostname, const char *mqtt_client_certificate, const char *http_client_certificate, const char *telemetry_topic, void (*attributes_callback)(const cJSON *))
 {
     if (!hostname)
     {
@@ -53,7 +54,9 @@ esp_err_t tb_client_init(const char *hostname, const char *certificate, const ch
 
     tb_client_handle->hostname = strdup(hostname);
 
-    tb_client_handle->certificate = certificate;
+    tb_client_handle->mqtt_client_certificate = mqtt_client_certificate;
+
+    tb_client_handle->http_client_certificate = http_client_certificate;
 
     tb_client_handle->telemetry_topic = strdup(telemetry_topic);
 
@@ -111,9 +114,14 @@ cleanup:
             tb_client_handle->telemetry_topic = NULL;
         }
 
-        if (tb_client_handle->certificate)
+        if (tb_client_handle->http_client_certificate)
         {
-            tb_client_handle->certificate = NULL;
+            tb_client_handle->http_client_certificate = NULL;
+        }
+
+        if (tb_client_handle->mqtt_client_certificate)
+        {
+            tb_client_handle->mqtt_client_certificate = NULL;
         }
 
         if (tb_client_handle->hostname)
@@ -126,7 +134,7 @@ cleanup:
     return err;
 }
 
-esp_err_t tb_client_send(const char *data)
+esp_err_t tb_client_send(const cJSON *data)
 {
     tb_client_handle_t tb_client_handle = s_tb_client_handle;
 
@@ -134,28 +142,18 @@ esp_err_t tb_client_send(const char *data)
 
     esp_err_t err = ESP_OK;
 
-    if (!data)
-    {
-        err = ESP_ERR_INVALID_ARG;
-        goto cleanup;
-    }
-
     if (!tb_client_handle)
     {
         err = ESP_ERR_INVALID_STATE;
         goto cleanup;
     }
 
-    mqtt_event_data = (char *)malloc(strlen(data) + 1);
+    mqtt_event_data = cJSON_PrintUnformatted(data);
     if (!mqtt_event_data)
     {
         err = ESP_ERR_NO_MEM;
         goto cleanup;
     }
-
-    *mqtt_event_data = '\0';
-
-    strcpy(mqtt_event_data, data);
 
     esp_mqtt_event_t mqtt_event = {
         .data = mqtt_event_data,
@@ -172,7 +170,7 @@ esp_err_t tb_client_send(const char *data)
 cleanup:
     if (mqtt_event_data)
     {
-        free(mqtt_event_data);
+        cJSON_free(mqtt_event_data);
         mqtt_event_data = NULL;
     }
 
@@ -262,7 +260,7 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
 
         esp_mqtt_client_config_t mqtt_client_config = {
             .broker.address.uri = mqtt_client_uri,
-            .broker.verification.certificate = tb_client_handle->certificate,
+            .broker.verification.certificate = tb_client_handle->mqtt_client_certificate,
             .credentials.username = (tb_client_handle->access_token) ? tb_client_handle->access_token : "provision",
         };
 
@@ -399,7 +397,7 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
                     goto cleanup;
                 }
 
-                memset(current_fw_data, 0, current_fw_data_len + 1);
+                *current_fw_data = '\0';
 
                 if (snprintf(current_fw_data, current_fw_data_len + 1, "{\"current_fw_title\":\"%s\",\"current_fw_version\":\"%s\"}", current_fw_title_data, current_fw_version_data) < 0)
                 {
@@ -435,7 +433,7 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
                         goto cleanup;
                     }
 
-                    memset(http_client_url, 0, http_client_url_len + 1);
+                    *http_client_url = '\0';
 
                     if (snprintf(http_client_url, http_client_url_len + 1, "%s://%s/api/v1/%s/firmware?title=%s&version=%s", (tb_client_handle->certificate) ? "https" : "http", tb_client_handle->hostname, tb_client_handle->access_token, fw_title_data, fw_version_data) < 0)
                     {
@@ -445,7 +443,7 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
 
                     esp_http_client_config_t http_client_config = {
                         .url = http_client_url,
-                        .cert_pem = tb_client_handle->certificate,
+                        .cert_pem = tb_client_handle->http_client_certificate,
                     };
 
                     esp_https_ota_config_t https_ota_config = {
@@ -629,7 +627,7 @@ cleanup:
 
     if (user_event_data)
     {
-        free(user_event_data);
+        cJSON_free(user_event_data);
         user_event_data = NULL;
     }
 
