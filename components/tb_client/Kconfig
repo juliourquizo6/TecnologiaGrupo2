@@ -1,0 +1,23 @@
+menu "ThingsBoard Configurations"
+
+    config TB_MQTTS
+        bool "Enable MQTTS"
+        default n
+
+    config TB_HTTPS
+        bool "Enable HTTPS"
+        default n
+
+    config TB_DEVICE_NAME
+        string "Device name in ThingsBoard"
+        default ""
+
+    config TB_PROVISION_DEVICE_KEY
+        string "Provisioning device key, you should take it from configured device profile"
+        default ""
+
+    config TB_PROVISION_DEVICE_SECRET
+        string "Provisioning device secret, you should take it from configured device profile"
+        default ""
+
+endmenu
