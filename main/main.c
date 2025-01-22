@@ -1,6 +1,7 @@
 #include "esp_event.h"
 #include "esp_netif.h"
 #include "nvs_flash.h"
+#include "sgp30.h"
 #include "tb_client.h"
 
 void app_main(void)
