@@ -1,9 +1,7 @@
-
 #include "sgp30.h"
 #include "freertos/FreeRTOS.h"
 #include "sdkconfig.h"
 #include "esp_err.h"
-#include "esp_mac.h"
 #include "sdkconfig.h"
 #include "driver/i2c.h"
 #include <esp_timer.h>
@@ -192,7 +190,6 @@ static void sgp30_co2_init(void) {
 
 void sensor_co2_create(sensor_co2_handler handler){
     sensor_handler = handler;
-    queue_timers_handle = xQueueCreate(QUEUE_LENGTH, sizeof(struct data_sensor_co2));
     sgp30_co2_init();
 }
 
