@@ -24,9 +24,7 @@ struct tb_client
     esp_mqtt_client_handle_t mqtt_client_handle;
 };
 
-static tb_client_t s_tb_client = {0};
-
-static tb_client_handle_t s_tb_client_handle = &s_tb_client;
+static tb_client_handle_t s_tb_client_handle = NULL;
 
 static void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
 
@@ -52,9 +50,9 @@ esp_err_t tb_client_init(const char *host, const char *topic, void (*callback)(c
         goto cleanup;
     }
 
-    tb_client_t tb_client = {0};
+    static tb_client_t s_tb_client = {0};
 
-    tb_client_handle = &tb_client;
+    tb_client_handle = &s_tb_client;
 
     tb_client_handle->host = strdup(host);
 
