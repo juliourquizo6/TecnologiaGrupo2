@@ -124,7 +124,7 @@ cleanup:
     return err;
 }
 
-esp_err_t tb_client_send(const cJSON *data)
+void tb_client_send(const cJSON *data)
 {
     tb_client_handle_t tb_client_handle = s_tb_client_handle;
 
@@ -163,8 +163,6 @@ cleanup:
         cJSON_free(user_event_data);
         user_event_data = NULL;
     }
-
-    return err;
 }
 
 void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id, void *event_data)
