@@ -23,6 +23,13 @@ esp_timer_handle_t tm_envio_handle;
 QueueHandle_t queue_timers_handle;
 sensor_co2_handler sensor_handler;
 
+struct data_sensor_co2
+{
+    uint16_t TVOC;
+    uint16_t CO2;
+};
+
+
 /* I2C */
 // Inicializacion
 static void i2c_init(void) {
@@ -116,14 +123,19 @@ static void tm_lectura(void* arg) {
     xQueueSend(queue_timers_handle, &data, 0);
 }
 
-
+// TODO: No usar queue, sino una variable estatica
+// media de valores.
 static void tm_envio(void* arg) {
     // Envio de datos.
     struct data_sensor_co2 data;
     
     if (xQueueReceive(queue_timers_handle, &data, 0, ) == pdTRUE) {
-        // TODO: COnvertir data a json. COnvertir JSON a string. EN vez de pasar data, pasar el string creado.
-        sensor_handler(data);
+        cJSON *datos = cJSON_CreateObject();
+        cJSON_AddNumberToObject(datos, "TVOC", data.TVOC);
+        cJSON_AddNumberToObject(datos, "eCO2", data.CO2);
+        assert(datos);
+        sensor_handler(datos);
+        cJSON_Delete(datos);
     }
 }
 
