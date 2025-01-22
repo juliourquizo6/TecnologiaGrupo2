@@ -10,9 +10,9 @@
 #include <esp_log.h>
 #include "sensor_co2.h"
 
-#define T_LECTURA  CONFIG_T_LECTURA
-#define T_ENVIO    CONFIG_T_ENVIO
-#define QUEUE_LENGTH 32
+#define T_LECTURA   CONFIG_T_LECTURA
+#define T_ENVIO     CONFIG_T_ENVIO
+#define CALIBRATION 5
 
 static const char* TAG = "SGP30";
 
@@ -26,9 +26,13 @@ sensor_co2_handler sensor_handler;
 struct data_sensor_co2
 {
     uint16_t TVOC;
-    uint16_t CO2;
+    uint16_t eCO2;
 };
 
+// data = media
+// los dos handlers de los timers funcionan correctamente porque se activan mediante una sola tarea
+static struct data_sensor_co2 data = {0};
+static size_t count = 0;
 
 /* I2C */
 // Inicializacion
@@ -115,28 +119,22 @@ int8_t main_i2c_write(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *i
 // Callbacks
 static void tm_lectura(void* arg) {
     sgp30_IAQ_measure(&sgp30_sensor);
-    struct data_sensor_co2 data = {
-        .CO2 = sgp30_sensor.eCO2,
-        .TVOC = sgp30_sensor.TVOC,
-    };
-    
-    xQueueSend(queue_timers_handle, &data, 0);
+    count++;
+    data.eCO2 = data.eCO2 + (sgp30_sensor.eCO2 - data.eCO2) / count;
+    data.TVOC = data.TVOC + (sgp30_sensor.TVOC - data.TVOC) / count;
 }
 
-// TODO: No usar queue, sino una variable estatica
-// media de valores.
+
 static void tm_envio(void* arg) {
-    // Envio de datos.
-    struct data_sensor_co2 data;
-    
-    if (xQueueReceive(queue_timers_handle, &data, 0, ) == pdTRUE) {
-        cJSON *datos = cJSON_CreateObject();
-        cJSON_AddNumberToObject(datos, "TVOC", data.TVOC);
-        cJSON_AddNumberToObject(datos, "eCO2", data.CO2);
-        assert(datos);
-        sensor_handler(datos);
-        cJSON_Delete(datos);
-    }
+    cJSON *datos = cJSON_CreateObject();
+    cJSON_AddNumberToObject(datos, "TVOC", data.TVOC);
+    cJSON_AddNumberToObject(datos, "eCO2", data.eCO2);
+    assert(datos);
+    sensor_handler(datos);
+    cJSON_Delete(datos);
+    data.eCO2 = 0;
+    data.TVOC = 0;
+    count = 0;
 }
 
 
@@ -179,7 +177,8 @@ static void sgp30_co2_init(void) {
     sgp30_init(&sgp30_sensor, (sgp30_read_fptr_t)main_i2c_read, (sgp30_write_fptr_t)main_i2c_write);
 
     // Calibracion del sensor
-    for (int i = 0; i < 15; i++) {
+    for (int i = 0; i < CALIBRATION; i++) {
+        ESP_LOGI(TAG, "Calibrando sensor %d de %d...", i+1, CALIBRATION);
         vTaskDelay(pdMS_TO_TICKS(1000));
         sgp30_IAQ_measure(&sgp30_sensor);
     }
