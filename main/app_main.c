@@ -1,4 +1,4 @@
-#include "sgp30_sensor.h" 
+#include "sgp30_sensor.h"
 #include "power_manager.h"
 #include "scheduler.h"
 #include "freertos/FreeRTOS.h"
@@ -6,9 +6,10 @@
 #include "driver/i2c.h"
 #include "esp_log.h"
 #include "esp_system.h"
+#include "sdkconfig.h" // Para las configuraciones de menuconfig
 
-#define I2C_SDA_PIN 21  // Pin SDA del ESP32
-#define I2C_SCL_PIN 22  // Pin SCL del ESP32
+#define I2C_SDA_PIN 21      // Pin SDA del ESP32
+#define I2C_SCL_PIN 22      // Pin SCL del ESP32
 #define I2C_FREQ_HZ 100000  // Frecuencia del bus I2C
 
 static const char *TAG = "APP_MAIN"; // Solo un TAG global
@@ -29,38 +30,33 @@ void i2c_master_init(void) {
 
 // Función para escanear dispositivos en el bus I2C
 void i2c_scan(void) {
-    esp_err_t ret;
-    ESP_LOGI(TAG, "Escaneando el bus I2C...");
-
-    // Escanea las direcciones del bus I2C
-    for (uint8_t addr = 0; addr < 128; addr++) {
-        // Intentar escribir a cada dirección
-        ret = i2c_master_write_to_device(I2C_NUM_0, addr, NULL, 0, 10 / portTICK_PERIOD_MS);
+    ESP_LOGI("I2C_SCAN", "Iniciando escaneo de dispositivos I2C...");
+    for (int address = 1; address < 127; address++) {
+        esp_err_t ret = i2c_master_write_to_device(I2C_NUM_0, address, NULL, 0, 1000 / portTICK_PERIOD_MS);
         if (ret == ESP_OK) {
-            ESP_LOGI(TAG, "Dispositivo encontrado en la dirección 0x%02X", addr);
-            // Ahora leer desde la dirección para confirmar la comunicación
-            uint8_t data;
-            ret = i2c_master_read_from_device(I2C_NUM_0, addr, &data, 1, 10 / portTICK_PERIOD_MS);
-            if (ret == ESP_OK) {
-                ESP_LOGI(TAG, "Dispositivo en 0x%02X responde correctamente", addr);
-            }
-        } else {
-            ESP_LOGE(TAG, "No se encontró dispositivo en la dirección 0x%02X", addr);
+            ESP_LOGI("I2C_SCAN", "Dispositivo encontrado en dirección 0x%02X", address);
         }
     }
+    ESP_LOGI("I2C_SCAN", "Escaneo completado.");
 }
 
-
+// Función principal
 void app_main(void) {
     ESP_LOGI(TAG, "Iniciando sistema de monitorización de calidad del aire...");
 
     // Inicializar I2C
     i2c_master_init();
 
-    // Inicializar el sensor y otros módulos
+    // Inicializar los módulos
     sgp30_init();
     power_manager_init();
     scheduler_init();
+
+    // Configurar horarios operativos desde menuconfig
+    scheduler_config_operational_hours(CONFIG_WORKING_HOURS_START, CONFIG_WORKING_HOURS_END);
+
+    // Determinar si el tiempo está configurado (ajustar según proyecto)
+    scheduler_set_time_configured(false); // Cambia a 'true' si tienes un RTC o sincronización NTP
 
     // Escanear el bus I2C para encontrar dispositivos conectados
     i2c_scan();
@@ -68,13 +64,20 @@ void app_main(void) {
     // Bucle principal
     while (1) {
         if (scheduler_is_operational()) {
+            // En horario operativo
             uint16_t co2, tvoc;
             if (sgp30_read(&co2, &tvoc) == ESP_OK) {
                 ESP_LOGI(TAG, "Lectura: CO2 = %d ppm, TVOC = %d ppb", co2, tvoc);
+            } else {
+                ESP_LOGE(TAG, "Error al leer datos del sensor SGP30");
             }
         } else {
-            power_manager_enter_deep_sleep();
+            // Fuera del horario operativo
+            ESP_LOGW(TAG, "Fuera del horario operativo. Entrando en modo de bajo consumo...");
+            power_manager_check_and_sleep();
         }
+
+        // Esperar según la frecuencia configurada en menuconfig
         vTaskDelay(pdMS_TO_TICKS(CONFIG_SAMPLE_FREQUENCY));
     }
 }
