@@ -34,5 +34,5 @@ Para iniciar y configurar el Wi-Fi con aprovisionamiento:
 #include "wifi_component.h"
 
 void app_main() {
-    wifi_init();
+    provision_and_connect();
 }

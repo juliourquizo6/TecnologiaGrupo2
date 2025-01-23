@@ -7,8 +7,6 @@
 
 static esp_event_loop_handle_t event_loop_handle;
 
-
-
 void app_main(void)
 {
 
@@ -22,7 +20,7 @@ void app_main(void)
 
     esp_event_loop_create(&event_loop_args, &event_loop_handle);
 
-    wifi_init();
+    provision_and_connect();
     
     // 1: Provisionamiento
     
