@@ -1,0 +1,17 @@
+menu "Configuracion SGP30"
+
+    config T_LECTURA
+        int "Frecuencia de lectura (ms)"
+        range 0 10000
+        default 2000
+        help
+            Frecuencia de lectura del sensor.
+
+    config T_ENVIO
+        int "Frecuencia de envio (ms)"
+        range 0 10000
+        default 2000
+        help
+            Frecuencia de envio del sensor.
+
+endmenu
