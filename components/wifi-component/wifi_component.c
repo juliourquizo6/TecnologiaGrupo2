@@ -245,16 +245,13 @@ void provision_and_connect(void)
         ESP_ERROR_CHECK(wifi_prov_mgr_start_provisioning(security, (const void *) sec_params, service_name, service_key));
 
         wifi_prov_mgr_endpoint_register("thingsboard", thingsboard_data_handler, NULL);
-        ESP_LOGI(TAG, "FIRST");
     } else {
         ESP_LOGI(TAG, "Already provisioned, starting Wi-Fi STA");
         wifi_prov_mgr_deinit();
         wifi_init_sta();
     }
-    ESP_LOGI(TAG, "HERE");
 
     xEventGroupWaitBits(wifi_event_group, WIFI_EVENT_STA_CONNECTED, true, true, portMAX_DELAY);
-    ESP_LOGI(TAG, "LATS");
 }
 
 const char * get_thingsboard_data(){
