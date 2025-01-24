@@ -1,9 +1,12 @@
 #include <stdio.h>
 #include "esp_wifi.h"
+#include <esp_log.h>
+#include <string.h>
 #include <wifi_provisioning/manager.h>
 #include <wifi_provisioning/scheme_softap.h>
 #include <wifi_component.h>
 
+const char *TAG1 = "MAIN";
 
 static esp_event_loop_handle_t event_loop_handle;
 
@@ -21,6 +24,7 @@ void app_main(void)
     esp_event_loop_create(&event_loop_args, &event_loop_handle);
 
     provision_and_connect();
+    ESP_LOGI(TAG1, "%s", (char *)thingsboard_data);
     
     // 1: Provisionamiento
     

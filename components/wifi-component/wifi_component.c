@@ -15,8 +15,10 @@
 
 const char *TAG = "WIFI_COMPONENT";
 
-#define EXAMPLE_PROV_SEC2_USERNAME          "wifiprov"
-#define EXAMPLE_PROV_SEC2_PWD               "abcd1234"
+char thingsboard_data[12] = "nothing";
+
+#define EXAMPLE_PROV_SEC2_USERNAME CONFIG_WIFI_PROVISIONING_USERNAME
+#define EXAMPLE_PROV_SEC2_PWD CONFIG_WIFI_PROVISIONING_PASSWORD
 
 const char sec2_salt[] = {
     0x03, 0x6e, 0xe0, 0xc7, 0xbc, 0xb9, 0xed, 0xa8, 0x4c, 0x9e, 0xac, 0x97, 0xd9, 0x3d, 0xec, 0xf4
@@ -49,6 +51,13 @@ const char sec2_verifier[] = {
     0xe6, 0xf6, 0x53, 0xc8, 0x31, 0xa8, 0x78, 0xde, 0x50, 0x40, 0xf7, 0x62, 0xde, 0x36, 0xb2, 0xba
 };
 
+void wifi_init_sta(void)
+{
+    /* Start Wi-Fi in station mode */
+    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
+    ESP_ERROR_CHECK(esp_wifi_start());
+}
+
 esp_err_t example_get_sec2_salt(const char **salt, uint16_t *salt_len) {
     *salt = sec2_salt;
     *salt_len = sizeof(sec2_salt);
@@ -63,8 +72,6 @@ esp_err_t example_get_sec2_verifier(const char **verifier, uint16_t *verifier_le
 
 const int WIFI_CONNECTED_EVENT = BIT0;
 EventGroupHandle_t wifi_event_group;
-
-#define PROV_TRANSPORT_SOFTAP   "softap"
 
 void event_handler(void* arg, esp_event_base_t event_base,
                           int32_t event_id, void* event_data)
@@ -92,6 +99,7 @@ void event_handler(void* arg, esp_event_base_t event_base,
             }
             case WIFI_PROV_CRED_SUCCESS:
                 ESP_LOGI(TAG, "Provisioning successful");
+                wifi_init_sta();
                 break;
             case WIFI_PROV_END:
                 /* De-initialize manager once provisioning is finished */
@@ -108,6 +116,10 @@ void event_handler(void* arg, esp_event_base_t event_base,
                 case WIFI_EVENT_STA_DISCONNECTED:
                     ESP_LOGI(TAG, "Disconnected. Connecting to the AP again...");
                     esp_wifi_connect();
+                    break;
+                case WIFI_EVENT_STA_CONNECTED:
+                    ESP_LOGI(TAG, "Connected to the AP");
+                    xEventGroupSetBits(wifi_event_group, WIFI_EVENT_STA_CONNECTED);
                     break;
                 case WIFI_EVENT_AP_STACONNECTED:
                     ESP_LOGI(TAG, "SoftAP transport: Connected!");
@@ -140,11 +152,25 @@ void event_handler(void* arg, esp_event_base_t event_base,
     }
 }
 
-void wifi_init_sta(void)
+esp_err_t thingsboard_data_handler(uint32_t session_id, const uint8_t *inbuf, ssize_t inlen,
+                                          uint8_t **outbuf, ssize_t *outlen, void *priv_data)
 {
-    /* Start Wi-Fi in station mode */
-    ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    ESP_ERROR_CHECK(esp_wifi_start());
+    if (inbuf) {
+        ESP_LOGI(TAG, "Received data: %.*s", inlen, (char *)inbuf);
+        memcpy(thingsboard_data, inbuf, inlen);
+
+        // Agregar terminador null para que sea un string válido en C
+        thingsboard_data[inlen] = '\0';
+    }
+    char response[] = "SUCCESS";
+    *outbuf = (uint8_t *)strdup(response);
+    if (*outbuf == NULL) {
+        ESP_LOGE(TAG, "System out of memory");
+        return ESP_ERR_NO_MEM;
+    }
+    *outlen = strlen(response) + 1; /* +1 for NULL terminating byte */
+
+    return ESP_OK;
 }
 
 void get_device_service_name(char *service_name, size_t max)
@@ -214,13 +240,23 @@ void provision_and_connect(void)
         wifi_prov_security2_params_t *sec_params = &sec2_params;
 
         const char *service_key = NULL;
+        wifi_prov_mgr_endpoint_create("thingsboard");
 
         ESP_ERROR_CHECK(wifi_prov_mgr_start_provisioning(security, (const void *) sec_params, service_name, service_key));
 
+        wifi_prov_mgr_endpoint_register("thingsboard", thingsboard_data_handler, NULL);
+        ESP_LOGI(TAG, "FIRST");
     } else {
         ESP_LOGI(TAG, "Already provisioned, starting Wi-Fi STA");
         wifi_prov_mgr_deinit();
         wifi_init_sta();
     }
-    xEventGroupWaitBits(wifi_event_group, WIFI_CONNECTED_EVENT, true, true, portMAX_DELAY);
+    ESP_LOGI(TAG, "HERE");
+
+    xEventGroupWaitBits(wifi_event_group, WIFI_EVENT_STA_CONNECTED, true, true, portMAX_DELAY);
+    ESP_LOGI(TAG, "LATS");
+}
+
+const char * get_thingsboard_data(){
+    return thingsboard_data;
 }

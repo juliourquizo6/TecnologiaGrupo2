@@ -177,7 +177,7 @@ async def custom_config(tp, sec, custom_info, custom_ver):
 async def custom_data(tp, sec, custom_data):
     try:
         message = prov.custom_data_request(sec, custom_data)
-        response = await tp.send_data('custom-data', message)
+        response = await tp.send_data('thingsboard', message)
         return (prov.custom_data_response(sec, response) == 0)
     except RuntimeError as e:
         on_except(e)
@@ -276,18 +276,18 @@ async def wait_wifi_connected(tp, sec):
     while True:
         time.sleep(TIME_PER_POLL)
         print('\n==== Wi-Fi connection state  ====')
-        ret = await get_wifi_config(tp, sec)
-        if ret == 'connecting':
-            continue
-        elif ret == 'connected':
-            print('==== Provisioning was successful ====')
-            return True
-        elif retry > 0:
-            retry -= 1
-            print('Waiting to poll status again (status %s, %d tries left)...' % (ret, retry))
-        else:
-            print('---- Provisioning failed! ----')
-            return False
+        #ret = await get_wifi_config(tp, sec)
+        #if ret == 'connecting':
+        #    continue
+        #elif ret == 'connected':
+        #    print('==== Provisioning was successful ====')
+        #    return True
+        #elif retry > 0:
+        #    retry -= 1
+        #    print('Waiting to poll status again (status %s, %d tries left)...' % (ret, retry))
+        #else:
+        #    print('---- Provisioning failed! ----')
+        #    return False
 
 
 async def reset_wifi(tp, sec):
@@ -526,7 +526,7 @@ async def main():
             raise RuntimeError('Error in apply Wi-Fi config')
         print('==== Apply config sent successfully ====')
 
-        await wait_wifi_connected(obj_transport, obj_security)
+        #await wait_wifi_connected(obj_transport, obj_security)
     finally:
         await obj_transport.disconnect()
 

@@ -7,3 +7,5 @@ esp_err_t custom_prov_data_handler(uint32_t session_id, const uint8_t *inbuf, ss
 void get_device_service_name(char *service_name, size_t max);
 esp_err_t example_get_sec2_salt(const uint8_t **salt, size_t *salt_len);
 esp_err_t example_get_sec2_verifier(const uint8_t **verifier, size_t *verifier_len);
+extern char thingsboard_data[12];
+const char * get_thingsboard_data();
