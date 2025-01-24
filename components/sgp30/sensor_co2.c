@@ -14,7 +14,7 @@
 
 static const char* TAG = "SGP30";
 
-i2c_port_t i2c_num = I2C_MASTER_NUM;
+static i2c_port_t i2c_num = I2C_MASTER_NUM;
 sgp30_dev_t sgp30_sensor;
 esp_timer_handle_t tm_lectura_handle;
 esp_timer_handle_t tm_envio_handle;
@@ -62,17 +62,17 @@ int8_t main_i2c_read(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *in
     }
 
     uint8_t chip_addr = *(uint8_t*)intf_ptr;
-    
+
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
 
     i2c_master_start(cmd);
-    
+
     if (reg_addr != 0xff) {
         i2c_master_write_byte(cmd, (chip_addr << 1) | I2C_MASTER_WRITE, ACK_CHECK_EN);
         i2c_master_write_byte(cmd, reg_addr, ACK_CHECK_EN);
         i2c_master_start(cmd);
     }
-    
+
     i2c_master_write_byte(cmd, (chip_addr << 1) | I2C_MASTER_READ, ACK_CHECK_EN);
 
     if (len > 1) {
@@ -82,9 +82,9 @@ int8_t main_i2c_read(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *in
     i2c_master_stop(cmd);
 
     ret = i2c_master_cmd_begin(i2c_num, cmd, pdMS_TO_TICKS(1000));
-    
+
     i2c_cmd_link_delete(cmd);
-    
+
     return ret;
 }
 
@@ -97,7 +97,7 @@ int8_t main_i2c_write(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *i
     i2c_cmd_handle_t cmd = i2c_cmd_link_create();
     i2c_master_start(cmd);
     i2c_master_write_byte(cmd, (chip_addr << 1) | I2C_MASTER_WRITE, ACK_CHECK_EN);
-    
+
     if (reg_addr != 0xFF) {
         i2c_master_write_byte(cmd, reg_addr, ACK_CHECK_EN);
     }
@@ -106,9 +106,9 @@ int8_t main_i2c_write(uint8_t reg_addr, uint8_t *reg_data, uint32_t len, void *i
     i2c_master_stop(cmd);
 
     ret = i2c_master_cmd_begin(i2c_num, cmd, pdMS_TO_TICKS(1000));
-    
+
     i2c_cmd_link_delete(cmd);
-    
+
     return ret;
 }
 
@@ -158,19 +158,19 @@ static void timers_init(void) {
 
 // Activacion
 void set_timers() {
-    ESP_ERROR_CHECK(esp_timer_start_periodic(tm_lectura_handle, pdMS_TO_TICKS(T_LECTURA)));
-    ESP_ERROR_CHECK(esp_timer_start_periodic(tm_envio_handle, pdMS_TO_TICKS(T_ENVIO)));
+    ESP_ERROR_CHECK(esp_timer_start_periodic(tm_lectura_handle, T_LECTURA * 1000));
+    ESP_ERROR_CHECK(esp_timer_start_periodic(tm_envio_handle, T_ENVIO * 1000));
 }
 
 /* SGP30 */
 // Inicializacion
 static void sgp30_co2_init(void) {
-    
+
     uint16_t eco2_baseline, tvoc_baseline;
 
     // I2C Bus
     i2c_init();
-    
+
     // Sensor
     sgp30_init(&sgp30_sensor, (sgp30_read_fptr_t)main_i2c_read, (sgp30_write_fptr_t)main_i2c_write);
 

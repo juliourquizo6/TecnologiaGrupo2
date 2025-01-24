@@ -1,10 +1,10 @@
 /**
  * @file SGP30.c
  *
- * @author Renato Freitas 
+ * @author Renato Freitas
  * @author Isabella Bologna
- * 
- * @brief AS7262 library, based on Adafruit's one. 
+ *
+ * @brief AS7262 library, based on Adafruit's one.
  * ----> https://www.adafruit.com/products/3779
  * ----> https://github.com/adafruit/Adafruit_AS726x
  *
@@ -36,7 +36,7 @@ static uint8_t SOFT_RESET[2] =              { 0x00, 0x06 };
 
 static uint8_t SGP_DEVICE_ADDR = SGP30_ADDR;  /**< SGP30 device address variable */
 
-i2c_port_t i2c_num = I2C_MASTER_NUM;
+static i2c_port_t i2c_num = I2C_MASTER_NUM;
 
 /*******************************************
  ****** Private Functions Prototypes ******
@@ -44,15 +44,15 @@ i2c_port_t i2c_num = I2C_MASTER_NUM;
 
 
 /**
- * @brief Executes commands based on SGP30 Command Table 
- * 
+ * @brief Executes commands based on SGP30 Command Table
+ *
  * @param device        Pointer to sgp30 device
  * @param command       Command to be executed'
  * @param command_len   Command lenght
  * @param delay         Time to wait for a response
  * @param read_data     Buffer where read data will be stored
  * @param read_len      Size of read_data buffer
- * 
+ *
  * @see https://www.sensirion.com/fileadmin/user_upload/customers/sensirion/Dokumente/9_Gas_Sensors/Datasheets/Sensirion_Gas_Sensors_SGP30_Datasheet.pdf
  *       Table #10
  */
@@ -60,8 +60,8 @@ static esp_err_t sgp30_execute_command(sgp30_dev_t *device, uint8_t command[], u
                                         uint16_t *read_data, uint8_t read_len);
 
 /**
- * @brief Calculates 8-Bit checksum with given polynomial, used to validate SGP30 commands. 
- * 
+ * @brief Calculates 8-Bit checksum with given polynomial, used to validate SGP30 commands.
+ *
  * @returns 8-bit checksum
  */
 static uint8_t sgp30_calculate_CRC(uint8_t *data, uint8_t len);
@@ -72,7 +72,7 @@ static uint8_t sgp30_calculate_CRC(uint8_t *data, uint8_t len);
  *******************************************/
 
 void sgp30_init(sgp30_dev_t *sensor, sgp30_read_fptr_t user_i2c_read, sgp30_write_fptr_t user_i2c_write) {
-    sensor->intf_ptr = &SGP_DEVICE_ADDR; 
+    sensor->intf_ptr = &SGP_DEVICE_ADDR;
     sensor->i2c_read = user_i2c_read;
     sensor->i2c_write = user_i2c_write;
 
@@ -162,19 +162,19 @@ void sgp30_set_humidity(sgp30_dev_t *sensor, uint32_t absolute_humidity) {
  *******************************************/
 
 
-static esp_err_t sgp30_execute_command(sgp30_dev_t *device, uint8_t command[], uint8_t command_len, uint16_t delay, 
+static esp_err_t sgp30_execute_command(sgp30_dev_t *device, uint8_t command[], uint8_t command_len, uint16_t delay,
                                         uint16_t *read_data, uint8_t read_len) {
 
     /*********************************************************************************************
      ** Measurement routine: START condition, the I2C WRITE header (7-bit I2C device address plus 0
      ** as the write bit) and a 16-bit measurement command.
      **
-     ** All commands are listed in TABLE 10 on the datasheet. 
-     ** 
-     ** 
-     ** After the sensor has completed the measurement, the master can read the measurement results by 
+     ** All commands are listed in TABLE 10 on the datasheet.
+     **
+     **
+     ** After the sensor has completed the measurement, the master can read the measurement results by
      ** sending a START condition followed by an I2C READ header. The sensor will respond with the data.
-     * 
+     *
      *! Each byte must be acknowledged by the microcontroller with an ACK condition for the sensor to continue sending data.
      *! If the sensor does not receive an ACK from the master after any byte of data, it will not continue sending data.
     **********************************************************************************************/
@@ -186,7 +186,7 @@ static esp_err_t sgp30_execute_command(sgp30_dev_t *device, uint8_t command[], u
 
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to write SGP30 I2C command! err: 0x%02x", err);
-        return err;  
+        return err;
     }
 
     // Waits for device to process command and measure desired value
@@ -234,7 +234,7 @@ static uint8_t sgp30_calculate_CRC(uint8_t *data, uint8_t len) {
      ** The 16-bit commands that are sent to the sensor already include a 3-bit CRC checksum.
      ** Data sent from and received by the sensor is always succeeded by an 8-bit CRC.
      *! In write direction it is mandatory to transmit the checksum, since the SGP30 only accepts data if
-     *! it is followed by the correct checksum. 
+     *! it is followed by the correct checksum.
      *
      ** In read direction it is up to the master to decide if it wants to read and process the checksum
     */
