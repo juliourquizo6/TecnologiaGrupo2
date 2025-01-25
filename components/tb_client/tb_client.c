@@ -4,6 +4,7 @@
 #include "esp_app_desc.h"
 #include "esp_crt_bundle.h"
 #include "esp_https_ota.h"
+#include "esp_wifi.h"
 #include "mqtt_client.h"
 #include "nvs.h"
 #include "sdkconfig.h"
@@ -402,6 +403,20 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
                         goto cleanup;
                     }
 
+                    wifi_ps_type_t wifi_ps_type = WIFI_PS_MIN_MODEM;
+
+                    err = esp_wifi_get_ps(&wifi_ps_type);
+                    if (err != ESP_OK)
+                    {
+                        goto cleanup;
+                    }
+
+                    err = esp_wifi_set_ps(WIFI_PS_NONE);
+                    if (err != ESP_OK)
+                    {
+                        goto cleanup;
+                    }
+
                     int http_client_url_len = snprintf(NULL, 0, "https://%s/api/v1/%s/firmware?title=%s&version=%s", tb_client_handle->host, tb_client_handle->access_token, fw_title_data, fw_version_data);
                     if (http_client_url_len < 0)
                     {
@@ -436,12 +451,24 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
                     err = esp_https_ota(&https_ota_config);
                     if (err != ESP_OK)
                     {
+                        err = esp_wifi_set_ps(wifi_ps_type);
+                        if (err != ESP_OK)
+                        {
+                            goto cleanup;
+                        }
+
                         if (esp_mqtt_client_publish(tb_client_handle->mqtt_client_handle, tb_client_handle->topic, "{\"fw_state\":\"FAILED\"}", 0, 0, 0) < 0)
                         {
                             err = ESP_FAIL;
                             goto cleanup;
                         }
 
+                        goto cleanup;
+                    }
+
+                    err = esp_wifi_set_ps(wifi_ps_type);
+                    if (err != ESP_OK)
+                    {
                         goto cleanup;
                     }
 
