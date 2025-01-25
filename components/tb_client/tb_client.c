@@ -2,14 +2,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include "esp_app_desc.h"
+#include "esp_crt_bundle.h"
 #include "esp_https_ota.h"
 #include "mqtt_client.h"
 #include "nvs.h"
 #include "sdkconfig.h"
 #include "tb_client.h"
-
-extern const uint8_t ca_cert_pem_start[] asm("_binary_ca_cert_pem_start");
-extern const uint8_t ca_cert_pem_end[] asm("_binary_ca_cert_pem_end");
 
 typedef struct tb_client tb_client_t;
 
@@ -427,8 +425,8 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
                     }
 
                     esp_http_client_config_t http_client_config = {
+                        .crt_bundle_attach = esp_crt_bundle_attach,
                         .url = http_client_url,
-                        .cert_pem = (const char *)ca_cert_pem_start,
                     };
 
                     esp_https_ota_config_t https_ota_config = {
