@@ -1,13 +1,5 @@
 menu "ThingsBoard Configurations"
 
-    config TB_MQTTS
-        bool "Enable MQTTS"
-        default n
-
-    config TB_HTTPS
-        bool "Enable HTTPS"
-        default n
-
     config TB_DEVICE_NAME
         string "Device name in ThingsBoard"
         default ""

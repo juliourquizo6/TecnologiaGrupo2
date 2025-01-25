@@ -222,13 +222,7 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
             }
         }
 
-#ifdef CONFIG_TB_MQTTS
-        const char *mqtt_client_uri_scheme = "mqtts";
-#else
-        const char *mqtt_client_uri_scheme = "mqtt";
-#endif
-
-        int mqtt_client_uri_len = snprintf(NULL, 0, "%s://%s", mqtt_client_uri_scheme, tb_client_handle->host);
+        int mqtt_client_uri_len = snprintf(NULL, 0, "mqtt://%s", tb_client_handle->host);
         if (mqtt_client_uri_len < 0)
         {
             err = ESP_FAIL;
@@ -244,21 +238,14 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
 
         *mqtt_client_uri = '\0';
 
-        if (snprintf(mqtt_client_uri, mqtt_client_uri_len + 1, "%s://%s", mqtt_client_uri_scheme, tb_client_handle->host) < 0)
+        if (snprintf(mqtt_client_uri, mqtt_client_uri_len + 1, "mqtt://%s", tb_client_handle->host) < 0)
         {
             err = ESP_FAIL;
             goto cleanup;
         }
 
-#ifdef CONFIG_TB_MQTTS
-        const char *mqtt_client_config_certificate = (const char *)ca_cert_pem_start;
-#else
-        const char *mqtt_client_config_certificate = NULL;
-#endif
-
         esp_mqtt_client_config_t mqtt_client_config = {
             .broker.address.uri = mqtt_client_uri,
-            .broker.verification.certificate = mqtt_client_config_certificate,
             .credentials.username = (tb_client_handle->access_token) ? tb_client_handle->access_token : "provision",
         };
 
@@ -417,13 +404,7 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
                         goto cleanup;
                     }
 
-#ifdef CONFIG_TB_HTTPS
-                    const char *http_client_url_scheme = "https";
-#else
-                    const char *http_client_url_scheme = "http";
-#endif
-
-                    int http_client_url_len = snprintf(NULL, 0, "%s://%s/api/v1/%s/firmware?title=%s&version=%s", http_client_url_scheme, tb_client_handle->host, tb_client_handle->access_token, fw_title_data, fw_version_data);
+                    int http_client_url_len = snprintf(NULL, 0, "https://%s/api/v1/%s/firmware?title=%s&version=%s", tb_client_handle->host, tb_client_handle->access_token, fw_title_data, fw_version_data);
                     if (http_client_url_len < 0)
                     {
                         err = ESP_FAIL;
@@ -439,21 +420,15 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
 
                     *http_client_url = '\0';
 
-                    if (snprintf(http_client_url, http_client_url_len + 1, "%s://%s/api/v1/%s/firmware?title=%s&version=%s", http_client_url_scheme, tb_client_handle->host, tb_client_handle->access_token, fw_title_data, fw_version_data) < 0)
+                    if (snprintf(http_client_url, http_client_url_len + 1, "https://%s/api/v1/%s/firmware?title=%s&version=%s", tb_client_handle->host, tb_client_handle->access_token, fw_title_data, fw_version_data) < 0)
                     {
                         err = ESP_FAIL;
                         goto cleanup;
                     }
 
-#ifdef CONFIG_TB_HTTPS
-                    const char *http_client_config_cert_pem = (const char *)ca_cert_pem_start;
-#else
-                    const char *http_client_config_cert_pem = NULL;
-#endif
-
                     esp_http_client_config_t http_client_config = {
                         .url = http_client_url,
-                        .cert_pem = http_client_config_cert_pem,
+                        .cert_pem = (const char *)ca_cert_pem_start,
                     };
 
                     esp_https_ota_config_t https_ota_config = {
