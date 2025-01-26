@@ -1,6 +1,7 @@
 #include <string.h>
 #include "sdkconfig.h" 
 #include "esp_log.h"
+#include "esp_timer.h"
 #include <freertos/FreeRTOS.h>
 #include <freertos/event_groups.h>
 
@@ -17,8 +18,11 @@
 
 char thingsboard_url[12] = "nothing";
 
+static esp_timer_handle_t reconnect_timer;
+
 #define EXAMPLE_PROV_SEC2_USERNAME CONFIG_WIFI_PROVISIONING_USERNAME
 #define EXAMPLE_PROV_SEC2_PWD CONFIG_WIFI_PROVISIONING_PASSWORD
+#define DELAY_SECONDS CONFIG_RECONNECT_DELAY_SECONDS
 
 const char sec2_salt[] = {
     0x03, 0x6e, 0xe0, 0xc7, 0xbc, 0xb9, 0xed, 0xa8, 0x4c, 0x9e, 0xac, 0x97, 0xd9, 0x3d, 0xec, 0xf4
@@ -104,6 +108,11 @@ esp_err_t load_thingsboard_url(char *url, size_t max_len) {
     return err;
 }
 
+void reconnect_wifi(void* arg) {
+    ESP_LOGI(TAG, "Reconnecting to AP...");
+    esp_wifi_connect();
+}
+
 const int WIFI_CONNECTED_EVENT = BIT0;
 EventGroupHandle_t wifi_event_group;
 
@@ -149,7 +158,13 @@ void event_handler(void* arg, esp_event_base_t event_base,
                     break;
                 case WIFI_EVENT_STA_DISCONNECTED:
                     ESP_LOGI(TAG, "Disconnected. Connecting to the AP again...");
-                    esp_wifi_connect();
+                    esp_timer_create_args_t timer_args = {
+                        .callback = reconnect_wifi,
+                        .arg = NULL,
+                        .name = "reconnect_timer"
+                    };
+                    ESP_ERROR_CHECK(esp_timer_create(&timer_args, &reconnect_timer));
+                    ESP_ERROR_CHECK(esp_timer_start_once(reconnect_timer, DELAY_SECONDS * 1000000)); // Retraso en microsegundos
                     break;
                 case WIFI_EVENT_STA_CONNECTED:
                     ESP_LOGI(TAG, "Connected to the AP");

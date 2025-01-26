@@ -11,4 +11,9 @@ menu "Wifi Component Configuration"
         help
             This is the password used for Wi-Fi provisioning.
 
+    config RECONNECT_DELAY_SECONDS
+        int "Seconds to wait before trying to reconnect to Wi Fi"
+        default 4 
+        help
+            Number of seconds to wait before trying to reconnect to WiFi after disconnecting.
 endmenu

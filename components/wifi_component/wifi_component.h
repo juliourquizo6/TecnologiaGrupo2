@@ -22,3 +22,5 @@ esp_err_t nvs_initialize(void);
 // Main provisioning and connection function
 void provision_and_connect(void);
 extern char thingsboard_url[12];
+
+void reconnect_wifi(void* arg);
