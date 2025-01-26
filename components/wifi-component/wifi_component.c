@@ -8,14 +8,15 @@
 #include <esp_log.h>
 #include <esp_wifi.h>
 #include <esp_event.h>
-#include <nvs_flash.h>
+#include "nvs.h"
+#include "nvs_flash.h"
 
 #include <wifi_provisioning/manager.h>
 #include <wifi_provisioning/scheme_softap.h>
 
 const char *TAG = "WIFI_COMPONENT";
 
-char thingsboard_data[12] = "nothing";
+char thingsboard_url[12] = "nothing";
 
 #define EXAMPLE_PROV_SEC2_USERNAME CONFIG_WIFI_PROVISIONING_USERNAME
 #define EXAMPLE_PROV_SEC2_PWD CONFIG_WIFI_PROVISIONING_PASSWORD
@@ -68,6 +69,55 @@ esp_err_t example_get_sec2_verifier(const char **verifier, uint16_t *verifier_le
     *verifier = sec2_verifier;
     *verifier_len = sizeof(sec2_verifier);
     return ESP_OK;
+}
+
+esp_err_t save_thingsboard_url(const char *url) {
+    nvs_handle_t nvs_handle;
+    esp_err_t err;
+    err = nvs_open("storage", NVS_READWRITE, &nvs_handle);
+    if (err != ESP_OK) {
+        ESP_LOGE("NVS", "Error opening NVS handle: %s", esp_err_to_name(err));
+        return err;
+    }
+    err = nvs_set_str(nvs_handle, "thingsboard_url", url);
+    if (err != ESP_OK) {
+        ESP_LOGE("NVS", "Error saving value: %s", esp_err_to_name(err));
+        nvs_close(nvs_handle);
+        return err;
+    }
+
+    err = nvs_commit(nvs_handle);
+    if (err != ESP_OK) {
+        ESP_LOGE("NVS", "Error committing changes: %s", esp_err_to_name(err));
+    }
+
+    nvs_close(nvs_handle);
+    return err;
+}
+
+esp_err_t load_thingsboard_url(char *url, size_t max_len) {
+    nvs_handle_t nvs_handle;
+    esp_err_t err;
+
+    err = nvs_open("storage", NVS_READONLY, &nvs_handle);
+    if (err != ESP_OK) {
+        ESP_LOGE("NVS", "Error opening NVS handle: %s", esp_err_to_name(err));
+        return err;
+    }
+    size_t required_size;
+    err = nvs_get_str(nvs_handle, "thingsboard_url", NULL, &required_size);
+    if (err == ESP_ERR_NVS_NOT_FOUND) {
+        ESP_LOGW("NVS", "thingsboard_url not found in NVS");
+    } else if (err == ESP_OK) {
+        if (required_size > max_len) {
+            ESP_LOGE("NVS", "Buffer size too small");
+            err = ESP_ERR_NO_MEM;
+        } else {
+            nvs_get_str(nvs_handle, "thingsboard_url", url, &required_size);
+        }
+    }
+    nvs_close(nvs_handle);
+    return err;
 }
 
 const int WIFI_CONNECTED_EVENT = BIT0;
@@ -152,15 +202,20 @@ void event_handler(void* arg, esp_event_base_t event_base,
     }
 }
 
-esp_err_t thingsboard_data_handler(uint32_t session_id, const uint8_t *inbuf, ssize_t inlen,
+esp_err_t thingsboard_url_handler(uint32_t session_id, const uint8_t *inbuf, ssize_t inlen,
                                           uint8_t **outbuf, ssize_t *outlen, void *priv_data)
 {
     if (inbuf) {
         ESP_LOGI(TAG, "Received data: %.*s", inlen, (char *)inbuf);
-        memcpy(thingsboard_data, inbuf, inlen);
+        memcpy(thingsboard_url, inbuf, inlen);
 
         // Agregar terminador null para que sea un string válido en C
-        thingsboard_data[inlen] = '\0';
+        thingsboard_url[inlen] = '\0';
+
+        esp_err_t err = save_thingsboard_url(thingsboard_url);
+        if (err != ESP_OK) {
+            ESP_LOGE(TAG, "Failed to save URL to NVS: %s", esp_err_to_name(err));
+        }
     }
     char response[] = "SUCCESS";
     *outbuf = (uint8_t *)strdup(response);
@@ -244,16 +299,18 @@ void provision_and_connect(void)
 
         ESP_ERROR_CHECK(wifi_prov_mgr_start_provisioning(security, (const void *) sec_params, service_name, service_key));
 
-        wifi_prov_mgr_endpoint_register("thingsboard", thingsboard_data_handler, NULL);
+        wifi_prov_mgr_endpoint_register("thingsboard", thingsboard_url_handler, NULL);
     } else {
         ESP_LOGI(TAG, "Already provisioned, starting Wi-Fi STA");
+        esp_err_t err = load_thingsboard_url(thingsboard_url, sizeof(thingsboard_url));
+        if (err == ESP_OK) {
+            ESP_LOGI(TAG, "Loaded ThingsBoard URL from NVS: %s", thingsboard_url);
+        } else {
+            ESP_LOGW(TAG, "Failed to load ThingsBoard URL from NVS");
+        }
         wifi_prov_mgr_deinit();
         wifi_init_sta();
     }
 
     xEventGroupWaitBits(wifi_event_group, WIFI_EVENT_STA_CONNECTED, true, true, portMAX_DELAY);
-}
-
-const char * get_thingsboard_data(){
-    return thingsboard_data;
 }
