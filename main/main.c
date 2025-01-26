@@ -11,7 +11,7 @@ static const char *topic = NULL;
 
 static void sgp30_handler(cJSON *data_sensor_co2)
 {
-    tb_client_send(data_sensor_co2);
+    tb_client_send_telemetry(data_sensor_co2);
 }
 
 static void attributes_callback(const cJSON *attributes)
