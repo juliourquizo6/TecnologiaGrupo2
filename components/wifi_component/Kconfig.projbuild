@@ -1,0 +1,14 @@
+menu "Wifi Component Configuration"
+    config WIFI_PROVISIONING_USERNAME
+        string "Wi-Fi Provisioning Username"
+        default "wifiprov" 
+        help
+            This is the username used for Wi-Fi provisioning.
+
+    config WIFI_PROVISIONING_PASSWORD
+        string "Wi-Fi Provisioning Password"
+        default "abcd1234" 
+        help
+            This is the password used for Wi-Fi provisioning.
+
+endmenu
