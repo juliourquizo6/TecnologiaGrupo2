@@ -7,7 +7,7 @@
 #include "tb_client.h"
 #include "wifi_component.h"
 
-static void attributes_callback(const cJSON *attributes)
+static void attributes_callback(cJSON *attributes)
 {
     cJSON *sampling_rate = cJSON_GetObjectItem(attributes, "samplingRate");
     if (!sampling_rate)
