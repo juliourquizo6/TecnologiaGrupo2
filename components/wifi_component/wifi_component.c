@@ -1,5 +1,5 @@
 #include <string.h>
-#include "sdkconfig.h" 
+#include "sdkconfig.h"
 #include "esp_log.h"
 #include "esp_timer.h"
 #include <freertos/FreeRTOS.h>
@@ -240,17 +240,11 @@ esp_err_t nvs_initialize(void)
         ESP_ERROR_CHECK(nvs_flash_erase());
         err = nvs_flash_init();
     }
-    return err; 
+    return err;
 }
 
 void provision_and_connect(void)
 {
-    /* Initialize NVS partition */
-    ESP_ERROR_CHECK(nvs_initialize());
-
-    /* Initialize TCP/IP */
-    ESP_ERROR_CHECK(esp_netif_init());
-
     /* Initialize the event loop */
     wifi_event_group = xEventGroupCreate();
 
