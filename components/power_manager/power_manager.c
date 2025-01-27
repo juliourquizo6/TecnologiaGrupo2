@@ -33,7 +33,7 @@ void power_manager_init(void) {
 
    ESP_ERROR_CHECK(esp_timer_create(timer_config, &timer));
    ESP_ERROR_CHECK(esp_timer_start_once(timer, timer_prueba));
-   esp_netif_config config= {
+   esp_sntp_config_t config= {
         .start=true,
         .sync_cb=sync_hour,
         .server_from_dhcp=true,
