@@ -34,8 +34,6 @@ void app_main(void)
     ESP_ERROR_CHECK(esp_event_loop_create_default());
 
     provision_and_connect();
-    // TODO
-    const char *topic = NULL;
-    tb_client_init(thingsboard_url, topic, attributes_callback);
+    tb_client_init(thingsboard_url, CONFIG_TECNOLOGIA_TOPIC, attributes_callback);
     sensor_co2_create(tb_client_send_telemetry);
 }

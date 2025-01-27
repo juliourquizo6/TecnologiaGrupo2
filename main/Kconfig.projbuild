@@ -1,0 +1,7 @@
+menu "Tecnologia Configurations"
+
+    config TECNOLOGIA_TOPIC
+        string "ThingsBoard topic to send telemetry to"
+        default "v1/devices/me/telemetry/facultad/piso/aula/numero/tipo"
+
+endmenu
