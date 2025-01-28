@@ -18,7 +18,6 @@ static i2c_port_t i2c_num = I2C_MASTER_NUM;
 sgp30_dev_t sgp30_sensor;
 esp_timer_handle_t tm_lectura_handle;
 esp_timer_handle_t tm_envio_handle;
-QueueHandle_t queue_timers_handle;
 sensor_co2_handler sensor_handler;
 
 struct data_sensor_co2
