@@ -112,8 +112,15 @@ esp_err_t load_thingsboard_url(char *url, size_t max_len) {
 }
 
 void reconnect_wifi(void* arg) {
-    ESP_LOGI(TAG, "Reconnecting to AP...");
-    esp_wifi_connect();
+    wifi_ap_record_t ap_info;
+    esp_wifi_sta_get_ap_info(&ap_info);
+    if (esp_wifi_sta_is_connected()) {
+        ESP_LOGI(TAG, "Ya conectado a la Wi-Fi: %s", ap_info.ssid);
+        esp_timer_stop(reconnect_timer);
+    } else {
+        ESP_LOGI(TAG, "Intentando reconectar a la Wi-Fi...");
+        ESP_ERROR_CHECK(esp_wifi_connect());
+        ESP_ERROR_CHECK(esp_timer_start_once(reconnect_timer, DELAY_SECONDS * 1000000));
 }
 
 const int WIFI_CONNECTED_EVENT = BIT0;
@@ -167,7 +174,7 @@ void event_handler(void* arg, esp_event_base_t event_base,
                         .name = "reconnect_timer"
                     };
                     ESP_ERROR_CHECK(esp_timer_create(&timer_args, &reconnect_timer));
-                    ESP_ERROR_CHECK(esp_timer_start_once(reconnect_timer, DELAY_SECONDS * 1000000)); // Retraso en microsegundos
+                    ESP_ERROR_CHECK(esp_timer_start_once(reconnect_timer, DELAY_SECONDS * 1000000));
                     break;
                 case WIFI_EVENT_STA_CONNECTED:
                     ESP_LOGI(TAG, "Connected to the AP");
