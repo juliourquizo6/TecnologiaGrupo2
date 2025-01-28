@@ -124,7 +124,8 @@ static void tm_lectura(void* arg) {
 
 static void tm_envio(void* arg) {
     cJSON *datos = cJSON_CreateObject();
-    cJSON_AddNumberToObject(datos, "tvoc", (double)data.TVOC / 1000.0);
+    // Calibrated for ethanol (https://www.catsensors.com/media/pdf/Sensor_Sensirion_IAM.pdf)
+    cJSON_AddNumberToObject(datos, "tvoc", (double)data.TVOC * (110.0 / (0.0244 * 1000.0)) / 1000.0);
     cJSON_AddNumberToObject(datos, "co2", data.eCO2);
     sensor_handler(datos);
     cJSON_Delete(datos);
