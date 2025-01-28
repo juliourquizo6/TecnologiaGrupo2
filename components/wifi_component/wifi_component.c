@@ -113,14 +113,15 @@ esp_err_t load_thingsboard_url(char *url, size_t max_len) {
 
 void reconnect_wifi(void* arg) {
     wifi_ap_record_t ap_info;
-    esp_wifi_sta_get_ap_info(&ap_info);
-    if (esp_wifi_sta_is_connected()) {
+    esp_err_t err = esp_wifi_sta_get_ap_info(&ap_info);
+    if (err == ESP_OK) {
         ESP_LOGI(TAG, "Ya conectado a la Wi-Fi: %s", ap_info.ssid);
         esp_timer_stop(reconnect_timer);
     } else {
         ESP_LOGI(TAG, "Intentando reconectar a la Wi-Fi...");
         ESP_ERROR_CHECK(esp_wifi_connect());
         ESP_ERROR_CHECK(esp_timer_start_once(reconnect_timer, DELAY_SECONDS * 1000000));
+    }
 }
 
 const int WIFI_CONNECTED_EVENT = BIT0;
