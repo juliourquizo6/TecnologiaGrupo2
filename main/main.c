@@ -3,6 +3,7 @@
 #include "esp_event.h"
 #include "esp_netif.h"
 #include "nvs_flash.h"
+#include "sdkconfig.h"
 #include "sensor_co2.h"
 #include "tb_client.h"
 #include "wifi_component.h"
