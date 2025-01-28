@@ -124,9 +124,8 @@ static void tm_lectura(void* arg) {
 
 static void tm_envio(void* arg) {
     cJSON *datos = cJSON_CreateObject();
-    cJSON_AddNumberToObject(datos, "tvoc", data.TVOC);
+    cJSON_AddNumberToObject(datos, "tvoc", (double)data.TVOC / 1000f);
     cJSON_AddNumberToObject(datos, "co2", data.eCO2);
-    assert(datos);
     sensor_handler(datos);
     cJSON_Delete(datos);
     data.eCO2 = 0;
