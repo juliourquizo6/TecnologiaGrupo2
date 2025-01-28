@@ -18,8 +18,6 @@ esp_err_t thingsboard_url_handler(uint32_t session_id, const uint8_t *inbuf, ssi
 
 // Function to generate the device service name
 void get_device_service_name(char *service_name, size_t max);
-// Initialize nvs flash memory
-esp_err_t nvs_initialize(void);
 // Main provisioning and connection function
 void provision_and_connect(void);
 extern char thingsboard_url[12];
