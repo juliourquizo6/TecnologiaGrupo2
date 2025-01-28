@@ -1,4 +1,4 @@
-# Air Quality Monitor
+# Proyecto Tecnologia2
 
 Este proyecto implementa un sistema de monitorización de calidad del aire usando ESP-IDF, con un sensor SGP30.
 
@@ -8,10 +8,10 @@ Este proyecto implementa un sistema de monitorización de calidad del aire usand
 - Gestión de energía con modos de bajo consumo y deep sleep.
 - Horarios configurables para funcionamiento.
 
-## Estructura
-- `sgp30_sensor.*`: Módulo del sensor SGP30.
-- `power_manager.*`: Gestión de energía.
-- `scheduler.*`: Gestión de horarios.
+## Estructura Gestor de energia
+- `power_manager.*`: 
+-Gestión de energía.
+-Gestión de horarios.
 
 ## Requisitos
 - ESP-IDF v4.4 o superior.

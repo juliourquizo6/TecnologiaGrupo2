@@ -3,6 +3,9 @@
 #include "time.h"
 #include "stdlib.h"
 #include "esp_err.h"
+#include "esp_mac.h"
+
+static const char *TAG = "POWER_MANAGER";
 
 // Configuración del horario operativo
 #define OPERATIVE_HOUR_START 8   // Hora de inicio (8:00)
