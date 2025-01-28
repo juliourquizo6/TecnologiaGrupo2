@@ -54,8 +54,18 @@ esp_err_t tb_client_init(const char *hostname, const char *telemetry_topic, void
     tb_client_handle = &s_tb_client;
 
     tb_client_handle->hostname = strdup(hostname);
+    if (!tb_client_handle->hostname)
+    {
+        err = ESP_ERR_NO_MEM;
+        goto cleanup;
+    }
 
     tb_client_handle->telemetry_topic = strdup(telemetry_topic);
+    if (!tb_client_handle->telemetry_topic)
+    {
+        err = ESP_ERR_NO_MEM;
+        goto cleanup;
+    }
 
     tb_client_handle->attributes_callback = attributes_callback;
 
