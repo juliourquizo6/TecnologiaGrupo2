@@ -28,6 +28,11 @@ static void attributes_callback(cJSON *attributes)
     sensor_co2_set_frecuencia_lectura(sampling_rate_ms);
 }
 
+static void mysensor_callback(const cJSON *data_sensor_co2)
+{
+    tb_client_send_telemetry(data_sensor_co2);
+}
+
 void app_main(void)
 {
     ESP_ERROR_CHECK(nvs_flash_init());
@@ -36,5 +41,5 @@ void app_main(void)
 
     provision_and_connect();
     tb_client_init(thingsboard_url, CONFIG_TECNOLOGIA_TOPIC, attributes_callback);
-    sensor_co2_create(tb_client_send_telemetry);
+    sensor_co2_create(mysensor_callback);
 }
