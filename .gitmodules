@@ -1,0 +1,3 @@
+[submodule "thingsboard"]
+	path = thingsboard
+	url = https://github.com/josugoar-archive/thingsboard.git
