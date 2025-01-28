@@ -156,10 +156,11 @@ static void timers_init(void) {
 }
 
 // Activacion
-void set_timers() {
+void set_timers(void *arg) {
     ESP_ERROR_CHECK(esp_timer_start_periodic(tm_lectura_handle, T_LECTURA * 1000));
     ESP_ERROR_CHECK(esp_timer_start_periodic(tm_envio_handle, T_ENVIO * 1000));
 }
+
 
 /* SGP30 */
 // Inicializacion
@@ -173,17 +174,18 @@ static void sgp30_co2_init(void) {
     // Sensor
     sgp30_init(&sgp30_sensor, (sgp30_read_fptr_t)main_i2c_read, (sgp30_write_fptr_t)main_i2c_write);
 
-    // Calibracion del sensor
-    for (int i = 0; i < CALIBRATION; i++) {
-        ESP_LOGI(TAG, "Calibrando sensor %d de %d...", i+1, CALIBRATION);
-        vTaskDelay(pdMS_TO_TICKS(1000));
-        sgp30_IAQ_measure(&sgp30_sensor);
-    }
-    sgp30_get_IAQ_baseline(&sgp30_sensor, &eco2_baseline, &tvoc_baseline);
-
     timers_init();
 
-    set_timers();
+    esp_timer_handle_t start_timer;
+
+    const esp_timer_create_args_t args_start_timer = {
+        .callback = &set_timers,
+        .name = "Tiempo de inicio"
+    };
+
+    ESP_ERROR_CHECK(esp_timer_create(&args_start_timer, &start_timer));
+    // Wait 15 seconds before starting the timers (from datasheet)
+    ESP_ERROR_CHECK(esp_timer_start_once(start_timer, 15000000));
 }
 
 
