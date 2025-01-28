@@ -24,7 +24,7 @@ El componente puede configurarse mediante el archivo `Kconfig.projbuild`. Se pue
 ## Explicación de las funcionalidades implementadas
 
 ### I2C
-Se incluye código de la API oficial de Espressif para la configuración del I2C. 
+Se incluye código de la API oficial de Espressif para la configuración del I2C.
 Tanto `i2c_init` como `main_i2c_read` y `main_i2c_write` son funcionalidades de la API oficial y están adaptadas a este proyecto.
 
  - `i2c_init`: Inicialización del bus I2C en modo maestro. Se asignan los pines GPIO para SDA y SCL, habilitando sus resistencias pull-up, y se configura la frecuencia del reloj. Finalmente, se instala el controlador I2C en el ESP32 para habilitar la comunicación con dispositivos esclavos.
@@ -36,7 +36,7 @@ Tanto `i2c_init` como `main_i2c_read` y `main_i2c_write` son funcionalidades de 
 
 ### Timers
  - `timers_init`: Inicializacion de dos temporizadores, uno para la lectura y otro para el envío.
- - `set_timers`: Se establecen, al arranque del proyecto, ambos temporizadores con la frecuencia previamente definida en la configuración del proyecto (`Kconfig.projbuild`). 
+ - `set_timers`: Se establecen, al arranque del proyecto, ambos temporizadores con la frecuencia previamente definida en la configuración del proyecto (`Kconfig.projbuild`).
  - `sensor_co2_set_frecuencia_lectura` y `sensor_co2_set_frecuencia_envio`: El proposito de estas funciones es ser llamadas cuando se quiera modificar las frecuencias de lectura y envio y volver a arrancar los temporizadores con estas nuevas frecuencias.
  - `tm_lectura`: Se implementa una ecuación que calcula la media incremental de los valores eCO2 y TV0C y en cada llamada al callback se guarda el dato calculado en una estructura de datos.
  - `tm_envio`: Se guarda todos los datos recopilados en un JSON y se envía mediante el handler del sensor. Al final, se borra la información y se resetea el contador.
@@ -59,7 +59,3 @@ void app_main() {
     sensor_co2_set_frecuencia_envio(5000);   // Set transmission frequency to 5000 ms
 }
 ```
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

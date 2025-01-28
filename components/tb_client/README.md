@@ -71,7 +71,3 @@ void app_main(void) {
     cJSON_Delete(telemetry);
 }
 ```
-
-## License
-
-This component is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
