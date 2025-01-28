@@ -105,7 +105,7 @@ void power_manager_init(void) {
     ESP_ERROR_CHECK(esp_timer_start_once(timer, TIMER_PRUEBA));
 
     // Inicializar la sincronización NTP
-    esp_netif_config config = {
+    esp_sntp_config_t config = {
         .start = true,
         .sync_cb = sync_hour,
         .server_from_dhcp = true,
