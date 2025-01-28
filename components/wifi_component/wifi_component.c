@@ -7,7 +7,7 @@
 
 #include <esp_wifi.h>
 #include <esp_event.h>
-
+#include "esp_netif.h"
 #include "nvs.h"
 #include "nvs_flash.h"
 
@@ -16,7 +16,9 @@
 
 #define TAG "WIFI_COMPONENT"
 
-char thingsboard_url[12] = "nothing";
+char thingsboard_url[24] = "nothing";
+esp_netif_t *sta_netif;
+
 
 static esp_timer_handle_t reconnect_timer;
 
@@ -61,6 +63,7 @@ void wifi_init_sta(void)
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_start());
 }
+
 esp_err_t example_get_sec2_salt(const char **salt, uint16_t *salt_len) {
     *salt = sec2_salt;
     *salt_len = sizeof(sec2_salt);
@@ -168,7 +171,7 @@ void event_handler(void* arg, esp_event_base_t event_base,
                     break;
                 case WIFI_EVENT_STA_CONNECTED:
                     ESP_LOGI(TAG, "Connected to the AP");
-                    xEventGroupSetBits(wifi_event_group, WIFI_EVENT_STA_CONNECTED);
+                    //xEventGroupSetBits(wifi_event_group, WIFI_EVENT_STA_CONNECTED);
                     break;
                 case WIFI_EVENT_AP_STACONNECTED:
                     ESP_LOGI(TAG, "SoftAP transport: Connected!");
@@ -183,7 +186,10 @@ void event_handler(void* arg, esp_event_base_t event_base,
             ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
             ESP_LOGI(TAG, "Connected with IP Address:" IPSTR, IP2STR(&event->ip_info.ip));
             /* Signal main application to continue execution */
-            xEventGroupSetBits(wifi_event_group, WIFI_CONNECTED_EVENT);
+            xEventGroupSetBits(wifi_event_group, WIFI_EVENT_STA_CONNECTED);
+            esp_netif_ip_info_t ip_info;
+            esp_netif_get_ip_info(sta_netif, &ip_info);
+            ESP_LOGI(TAG, "IP: " IPSTR, IP2STR(&ip_info.ip));
         } else if (event_base == PROTOCOMM_SECURITY_SESSION_EVENT) {
         switch (event_id) {
             case PROTOCOMM_SECURITY_SESSION_SETUP_OK:
@@ -253,8 +259,7 @@ void provision_and_connect(void)
     ESP_ERROR_CHECK(esp_event_handler_register(PROTOCOMM_SECURITY_SESSION_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register(IP_EVENT, IP_EVENT_STA_GOT_IP, &event_handler, NULL));
-
-    esp_netif_create_default_wifi_sta();
+    sta_netif = esp_netif_create_default_wifi_sta();
     esp_netif_create_default_wifi_ap();
 
     wifi_init_config_t cfg = WIFI_INIT_CONFIG_DEFAULT();
@@ -299,4 +304,5 @@ void provision_and_connect(void)
     }
 
     xEventGroupWaitBits(wifi_event_group, WIFI_EVENT_STA_CONNECTED, true, true, portMAX_DELAY);
+    
 }
