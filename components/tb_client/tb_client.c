@@ -4,6 +4,7 @@
 #include "esp_app_desc.h"
 #include "esp_crt_bundle.h"
 #include "esp_https_ota.h"
+#include "esp_log.h"
 #include "esp_wifi.h"
 #include "mqtt_client.h"
 #include "nvs.h"
@@ -22,6 +23,8 @@ struct tb_client
     char *access_token;
     esp_mqtt_client_handle_t mqtt_client_handle;
 };
+
+static char *TAG = "tb_client";
 
 static tb_client_handle_t s_tb_client_handle = NULL;
 
@@ -95,6 +98,8 @@ esp_err_t tb_client_init(const char *hostname, const char *telemetry_topic, void
     s_tb_client_handle = tb_client_handle;
     tb_client_handle = NULL;
 
+    ESP_LOGI(TAG, "Initialized ThingsBoard client");
+
 cleanup:
     if (tb_client_handle)
     {
@@ -160,6 +165,8 @@ void tb_client_send_telemetry(const cJSON *telemetry)
         goto cleanup;
     }
 
+    ESP_LOGI(TAG, "Sent telemetry: %s", telemetry_data);
+
 cleanup:
     if (telemetry_data)
     {
@@ -186,6 +193,8 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
     {
     case MQTT_EVENT_BEFORE_CONNECT:
     {
+        ESP_LOGI(TAG, "Connecting to ThingsBoard");
+
         err = esp_wifi_set_ps(WIFI_PS_MIN_MODEM);
         if (err != ESP_OK)
         {
@@ -229,6 +238,8 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
 
                     tb_client_handle->access_token = access_token;
                     access_token = NULL;
+
+                    ESP_LOGI(TAG, "Restored access token: %s", tb_client_handle->access_token);
                 }
             }
         }
@@ -266,13 +277,19 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
             goto cleanup;
         }
 
+        ESP_LOGI(TAG, "Using ThingsBoard hostname %s and username %s", mqtt_client_config.broker.address.uri, mqtt_client_config.credentials.username);
+
         break;
     }
 
     case MQTT_EVENT_CONNECTED:
     {
+        ESP_LOGI(TAG, "Connected to ThingsBoard");
+
         if (tb_client_handle->access_token)
         {
+            ESP_LOGI(TAG, "Listening for attributes");
+
             if (esp_mqtt_client_subscribe(tb_client_handle->mqtt_client_handle, "v1/devices/me/attributes", 0) < 0)
             {
                 err = ESP_FAIL;
@@ -293,6 +310,8 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
         }
         else
         {
+            ESP_LOGI(TAG, "Provisioning device");
+
             if (esp_mqtt_client_subscribe(tb_client_handle->mqtt_client_handle, "/provision/response", 0) < 0)
             {
                 err = ESP_FAIL;
@@ -311,12 +330,16 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
 
     case MQTT_EVENT_DATA:
     {
+        ESP_LOGI(TAG, "Received data %.*s on topic %.*s", mqtt_event_handle->data_len, mqtt_event_handle->data, mqtt_event_handle->topic_len, mqtt_event_handle->topic);
+
         if (tb_client_handle->access_token)
         {
             cJSON *attributes = NULL;
 
             if (strncmp(mqtt_event_handle->topic, "v1/devices/me/attributes", mqtt_event_handle->topic_len) == 0)
             {
+                ESP_LOGI(TAG, "Received attribute update");
+
                 root = cJSON_ParseWithLength(mqtt_event_handle->data, mqtt_event_handle->data_len);
                 if (!root)
                 {
@@ -328,6 +351,8 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
             }
             else if (strncmp(mqtt_event_handle->topic, "v1/devices/me/attributes/response/0", mqtt_event_handle->topic_len) == 0)
             {
+                ESP_LOGI(TAG, "Received attribute response");
+
                 root = cJSON_ParseWithLength(mqtt_event_handle->data, mqtt_event_handle->data_len);
                 if (!root)
                 {
@@ -368,11 +393,15 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
                     goto cleanup;
                 }
 
+                ESP_LOGI(TAG, "Received firmware title %s and version %s", fw_title_data, fw_version_data);
+
                 const esp_app_desc_t *app_desc = esp_app_get_description();
 
                 const char *current_fw_title_data = app_desc->project_name;
 
                 const char *current_fw_version_data = app_desc->version;
+
+                ESP_LOGI(TAG, "Current firmware title %s and version %s", current_fw_title_data, current_fw_version_data);
 
                 int current_fw_data_len = snprintf(NULL, 0, "{\"current_fw_title\":\"%s\",\"current_fw_version\":\"%s\"}", current_fw_title_data, current_fw_version_data);
                 if (current_fw_data_len < 0)
@@ -404,6 +433,8 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
 
                 if (strcmp(fw_title_data, current_fw_title_data) != 0 || strcmp(fw_version_data, current_fw_version_data) != 0)
                 {
+                    ESP_LOGI(TAG, "Downloading firmware");
+
                     err = esp_wifi_set_ps(WIFI_PS_NONE);
                     if (err != ESP_OK)
                     {
@@ -477,12 +508,16 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
                         goto cleanup;
                     }
 
+                    ESP_LOGI(TAG, "Restarting in device");
+
                     vTaskDelay(pdMS_TO_TICKS(1000));
 
                     esp_restart();
                 }
                 else
                 {
+                    ESP_LOGI(TAG, "Firmware is up to date");
+
                     if (esp_mqtt_client_publish(tb_client_handle->mqtt_client_handle, tb_client_handle->telemetry_topic, "{\"fw_state\":\"UPDATED\"}", 0, 0, 0) < 0)
                     {
                         err = ESP_FAIL;
@@ -500,6 +535,8 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
         {
             if (strncmp(mqtt_event_handle->topic, "/provision/response", mqtt_event_handle->topic_len) == 0)
             {
+                ESP_LOGI(TAG, "Received provisioning response");
+
                 root = cJSON_ParseWithLength(mqtt_event_handle->data, mqtt_event_handle->data_len);
                 if (!root)
                 {
@@ -561,6 +598,8 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
                     goto cleanup;
                 }
 
+                ESP_LOGI(TAG, "Received access token: %s", credentials_value_data);
+
                 err = nvs_open("tb_client", NVS_READWRITE, &nvs_handle);
                 if (err != ESP_OK)
                 {
@@ -578,6 +617,8 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
                 {
                     goto cleanup;
                 }
+
+                ESP_LOGI(TAG, "Reconnected to ThingsBoard with access token");
 
                 esp_mqtt_client_config_t mqtt_client_config = {
                     .network.reconnect_timeout_ms = 1,
@@ -614,6 +655,8 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
 cleanup:
     if (err != ESP_OK)
     {
+        ESP_LOGE(TAG, "Error %s, disconnecting and reconnecting to ThingsBoard", esp_err_to_name(err));
+
         esp_mqtt_client_disconnect(tb_client_handle->mqtt_client_handle);
     }
 
