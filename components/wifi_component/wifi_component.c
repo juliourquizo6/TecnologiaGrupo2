@@ -59,7 +59,6 @@ const char sec2_verifier[] = {
 
 void wifi_init_sta(void)
 {
-    /* Start Wi-Fi in station mode */
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
     ESP_ERROR_CHECK(esp_wifi_start());
 }
@@ -115,10 +114,10 @@ void reconnect_wifi(void* arg) {
     wifi_ap_record_t ap_info;
     esp_err_t err = esp_wifi_sta_get_ap_info(&ap_info);
     if (err == ESP_OK) {
-        ESP_LOGI(TAG, "Ya conectado a la Wi-Fi: %s", ap_info.ssid);
+        ESP_LOGI(TAG, "Already connected to Wi-Fi: %s", ap_info.ssid);
         esp_timer_stop(reconnect_timer);
     } else {
-        ESP_LOGI(TAG, "Intentando reconectar a la Wi-Fi...");
+        ESP_LOGI(TAG, "Trying to reconnect to Wi-Fi...");
         ESP_ERROR_CHECK(esp_wifi_connect());
         ESP_ERROR_CHECK(esp_timer_start_once(reconnect_timer, DELAY_SECONDS * 1000000));
     }
@@ -156,7 +155,6 @@ void event_handler(void* arg, esp_event_base_t event_base,
                 wifi_init_sta();
                 break;
             case WIFI_PROV_END:
-                /* De-initialize manager once provisioning is finished */
                 wifi_prov_mgr_deinit();
                 break;
             default:
@@ -179,7 +177,6 @@ void event_handler(void* arg, esp_event_base_t event_base,
                     break;
                 case WIFI_EVENT_STA_CONNECTED:
                     ESP_LOGI(TAG, "Connected to the AP");
-                    //xEventGroupSetBits(wifi_event_group, WIFI_EVENT_STA_CONNECTED);
                     break;
                 case WIFI_EVENT_AP_STACONNECTED:
                     ESP_LOGI(TAG, "SoftAP transport: Connected!");
@@ -193,7 +190,6 @@ void event_handler(void* arg, esp_event_base_t event_base,
         } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
             ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
             ESP_LOGI(TAG, "Connected with IP Address:" IPSTR, IP2STR(&event->ip_info.ip));
-            /* Signal main application to continue execution */
             xEventGroupSetBits(wifi_event_group, WIFI_EVENT_STA_CONNECTED);
             esp_netif_ip_info_t ip_info;
             esp_netif_get_ip_info(sta_netif, &ip_info);
@@ -221,8 +217,6 @@ esp_err_t thingsboard_url_handler(uint32_t session_id, const uint8_t *inbuf, ssi
     if (inbuf) {
         ESP_LOGI(TAG, "Received data: %.*s", inlen, (char *)inbuf);
         memcpy(thingsboard_url, inbuf, inlen);
-
-        // Agregar terminador null para que sea un string válido en C
         thingsboard_url[inlen] = '\0';
         ESP_LOGI(TAG, "Received ThingsBoard URL: %s", thingsboard_url);
         esp_err_t err = save_thingsboard_url(thingsboard_url);
@@ -233,7 +227,7 @@ esp_err_t thingsboard_url_handler(uint32_t session_id, const uint8_t *inbuf, ssi
         ESP_LOGE(TAG, "System out of memory");
         return ESP_ERR_NO_MEM;
     }
-    *outlen = strlen(response) + 1; /* +1 for NULL terminating byte */
+    *outlen = strlen(response) + 1;
 
     return ESP_OK;
 }
@@ -249,10 +243,8 @@ void get_device_service_name(char *service_name, size_t max)
 
 void provision_and_connect(void)
 {
-    /* Initialize the event loop */
     wifi_event_group = xEventGroupCreate();
 
-    /* Register our event handler for Wi-Fi, IP and Provisioning related events */
     ESP_ERROR_CHECK(esp_event_handler_register(WIFI_PROV_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register(PROTOCOMM_SECURITY_SESSION_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL));
     ESP_ERROR_CHECK(esp_event_handler_register(WIFI_EVENT, ESP_EVENT_ANY_ID, &event_handler, NULL));
