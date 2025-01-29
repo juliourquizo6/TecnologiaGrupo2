@@ -22,11 +22,13 @@ static void attributes_callback(cJSON *attributes)
         return;
     }
 
-    int sampling_rate_hz = sampling_rate->valueint;
+    double sampling_rate_hz = sampling_rate->valuedouble;
 
-    int sampling_rate_ms = 1000 / sampling_rate_hz;
+    double sampling_rate_ms = 1000 / sampling_rate_hz;
 
-    sensor_co2_set_frecuencia_lectura(sampling_rate_ms);
+    sensor_co2_set_frecuencia_envio(sampling_rate_ms);
+
+    ESP_LOGI("main", "Sampling rate set to %f Hz, %f ms", sampling_rate_hz, sampling_rate_ms);
 }
 
 static void mysensor_callback(const cJSON *data_sensor_co2)
