@@ -16,7 +16,7 @@
 
 #define TAG "WIFI_COMPONENT"
 
-char thingsboard_url[24] = "nothing";
+char thingsboard_url[24] = "demo.thingsboard.io";
 esp_netif_t *sta_netif;
 
 
@@ -294,5 +294,5 @@ void provision_and_connect(void)
     }
 
     xEventGroupWaitBits(wifi_event_group, WIFI_EVENT_STA_CONNECTED, true, true, portMAX_DELAY);
-    
+
 }
