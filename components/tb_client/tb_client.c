@@ -361,16 +361,16 @@ void tb_mqtt_event_handler(void *event_handler_arg, esp_event_base_t event_base,
                 }
 
                 attributes = cJSON_GetObjectItem(root, "shared");
-                if (!attributes)
-                {
-                    err = ESP_FAIL;
-                    goto cleanup;
-                }
             }
             else
             {
                 err = ESP_FAIL;
                 goto cleanup;
+            }
+
+            if (!attributes)
+            {
+                break;
             }
 
             cJSON *fw_title = cJSON_GetObjectItem(attributes, "fw_title");
