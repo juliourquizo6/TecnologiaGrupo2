@@ -90,6 +90,9 @@ esp_err_t load_thingsboard_url(char *url, size_t max_len) {
     esp_err_t err;
 
     err = nvs_open("storage", NVS_READONLY, &nvs_handle);
+    if (err == ESP_ERR_NVS_NOT_FOUND) {
+        return err;
+    }
     if (err != ESP_OK) {
         ESP_LOGE("NVS", "Error opening NVS handle: %s", esp_err_to_name(err));
         return err;
@@ -219,7 +222,7 @@ esp_err_t thingsboard_url_handler(uint32_t session_id, const uint8_t *inbuf, ssi
         memcpy(thingsboard_url, inbuf, inlen);
         thingsboard_url[inlen] = '\0';
         ESP_LOGI(TAG, "Received ThingsBoard URL: %s", thingsboard_url);
-        esp_err_t err = save_thingsboard_url(thingsboard_url);
+        save_thingsboard_url(thingsboard_url);
     }
     char response[] = "SUCCESS";
     *outbuf = (uint8_t *)strdup(response);
@@ -271,8 +274,8 @@ void provision_and_connect(void)
         get_device_service_name(service_name, sizeof(service_name));
         wifi_prov_security_t security = WIFI_PROV_SECURITY_2;
 
-        const char *username  = EXAMPLE_PROV_SEC2_USERNAME;
-        const char *pop = EXAMPLE_PROV_SEC2_PWD;
+        // const char *username  = EXAMPLE_PROV_SEC2_USERNAME;
+        // const char *pop = EXAMPLE_PROV_SEC2_PWD;
 
         wifi_prov_security2_params_t sec2_params = {};
 
@@ -288,7 +291,11 @@ void provision_and_connect(void)
         wifi_prov_mgr_endpoint_register("custom-data", thingsboard_url_handler, NULL);
     } else {
         ESP_LOGI(TAG, "Already provisioned, starting Wi-Fi STA");
-        ESP_ERROR_CHECK(load_thingsboard_url(thingsboard_url, sizeof(thingsboard_url)));
+        esp_err_t err = load_thingsboard_url(thingsboard_url, sizeof(thingsboard_url));
+        if (err != ESP_OK && err != ESP_ERR_NVS_NOT_FOUND)
+        {
+            ESP_ERROR_CHECK(err);
+        }
         wifi_prov_mgr_deinit();
         wifi_init_sta();
     }
