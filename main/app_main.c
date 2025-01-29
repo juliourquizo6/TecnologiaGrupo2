@@ -16,14 +16,8 @@ void app_main(void) {
     }
     ESP_ERROR_CHECK(ret);
 
-    ESP_LOGI(TAG, "Inicializando el gestor de energía...");
-    
     // Inicializar el gestor de energía
     power_manager_init();
 
     ESP_LOGI(TAG, "Gestor de energía inicializado.");
-
-    // Registrar eventos del temporizador y Deep Sleep
-    ESP_LOGI(TAG, "Esperando eventos del gestor de energía...");
 }
-

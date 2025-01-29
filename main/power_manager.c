@@ -4,8 +4,13 @@
 #include "stdlib.h"
 #include "esp_err.h"
 #include "esp_mac.h"
+<<<<<<< HEAD:main/power_manager.c
 #include "esp_log.h"        // Para ESP_LOGI
 #include "esp_sleep.h"      // Para funciones de Deep Sleep
+=======
+#include "esp_sleep.h"
+#include "esp_log.h"
+>>>>>>> 02a22f5f3bc276618fede28967c17caa49119fe5:components/power_manager/power_manager.c
 
 static const char *TAG = "POWER_MANAGER";
 
