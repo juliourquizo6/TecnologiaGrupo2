@@ -1,3 +1,3 @@
 idf_component_register(SRCS "main.c"
                        INCLUDE_DIRS "."
-                       REQUIRES esp_event esp_netif json nvs_flash protocol_examples_common sgp30 tb_client wifi_component)
+                       REQUIRES esp_event esp_netif json nvs_flash protocol_examples_common sgp30 tb_client wifi_component power_manager)

@@ -1,0 +1,28 @@
+menu "Configuración del Monitor de Calidad del Aire"
+
+    config SAMPLE_FREQUENCY
+        int "Frecuencia de lectura del sensor (ms)"
+        default 1000
+        range 100 60000
+        help
+            Configura la frecuencia de muestreo del sensor en milisegundos.
+            Valor mínimo: 100 ms (0.1 segundos)
+            Valor máximo: 60000 ms (1 minuto)
+    
+    config WORKING_HOURS_START
+        int "Hora de inicio del funcionamiento (0-23)"
+        default 8
+        range 0 23
+        help
+            Hora en formato 24 horas en la que el sistema comienza a operar.
+            Ejemplo: 8 significa 8:00 AM.
+    
+    config WORKING_HOURS_END
+        int "Hora de fin del funcionamiento (0-23)"
+        default 22
+        range 0 23
+        help
+            Hora en formato 24 horas en la que el sistema deja de operar.
+            Ejemplo: 22 significa 10:00 PM.
+    
+endmenu
