@@ -4,18 +4,18 @@
 #include "stdlib.h"
 #include "esp_err.h"
 #include "esp_mac.h"
-#include "esp_sleep.h"
-#include "esp_log.h"
+#include "esp_log.h"        // Para ESP_LOGI
+#include "esp_sleep.h"      // Para funciones de Deep Sleep
 
 static const char *TAG = "POWER_MANAGER";
 
 // Configuración del horario operativo
 #define OPERATIVE_HOUR_START 8   // Hora de inicio (8:00)
-#define OPERATIVE_HOUR_END 22   // Hora de fin (22:00)
+#define OPERATIVE_HOUR_END 22    // Hora de fin (22:00)
 
-// Tiempo inicial si no se tiene hora sincronizada
-#define TIMER_PRUEBA 14 * 60 * 60 * 1000000ULL
-#define SLEEP_TIMER 10 * 60 * 60 * 1000000ULL
+// Tiempos predeterminados (en microsegundos)
+#define TIMER_PRUEBA 14 * 60 * 60 * 1000000ULL // 14 horas
+#define SLEEP_TIMER 10 * 60 * 60 * 1000000ULL  // 10 horas
 #define TIME_ZONE "UTC+1"
 
 static esp_timer_handle_t timer;
@@ -62,10 +62,11 @@ void timer_cb(void *arg) {
         // Dentro del horario operativo
         ESP_LOGI(TAG, "Dentro del horario operativo. Calculando tiempo hasta el fin del día operativo...");
         int64_t time_to_sleep = calculate_time_to_next_event(false); // Tiempo hasta el fin del día
+        ESP_LOGI(TAG, "Tiempo hasta el fin del horario operativo: %lld microsegundos.", time_to_sleep);
         ESP_ERROR_CHECK(esp_timer_start_once(timer, time_to_sleep));
     } else {
         // Fuera del horario operativo, entrar en Deep Sleep
-        ESP_LOGI(TAG, "El sistema está entrando en Deep Sleep por 10 horas...");
+        ESP_LOGI(TAG, "El sistema está entrando en Deep Sleep por %lld microsegundos...", SLEEP_TIMER);
         esp_sleep_enable_timer_wakeup(SLEEP_TIMER);
         esp_deep_sleep_start();
     }
@@ -87,6 +88,8 @@ void sync_hour(struct timeval *tv) {
         time_to_event = calculate_time_to_next_event(true); // Inicio del próximo horario operativo
     }
 
+    ESP_LOGI(TAG, "Tiempo hasta el próximo evento: %lld microsegundos.", time_to_event);
+
     // Reiniciar el temporizador
     ESP_ERROR_CHECK(esp_timer_restart(timer, time_to_event));
 }
@@ -105,6 +108,7 @@ void power_manager_init(void) {
 
     // Configurar el temporizador inicial
     ESP_ERROR_CHECK(esp_timer_start_once(timer, TIMER_PRUEBA));
+    ESP_LOGI(TAG, "Temporizador inicial configurado por %lld microsegundos.", TIMER_PRUEBA);
 
     // Inicializar la sincronización NTP
     esp_sntp_config_t config = {
