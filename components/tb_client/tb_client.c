@@ -126,6 +126,8 @@ cleanup:
             free(tb_client_handle->hostname);
             tb_client_handle->hostname = NULL;
         }
+
+        tb_client_handle = NULL;
     }
 
     return err;
