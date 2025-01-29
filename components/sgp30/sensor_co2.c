@@ -25,8 +25,8 @@ static EventGroupHandle_t timers_event_group;
 
 struct data_sensor_co2
 {
-    uint16_t TVOC;
-    uint16_t eCO2;
+    int64_t TVOC;
+    int64_t eCO2;
 };
 
 // data = media
