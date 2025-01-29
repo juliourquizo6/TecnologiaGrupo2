@@ -4,6 +4,8 @@
 #include "stdlib.h"
 #include "esp_err.h"
 #include "esp_mac.h"
+#include "esp_sleep.h"
+#include "esp_log.h"
 
 static const char *TAG = "POWER_MANAGER";
 

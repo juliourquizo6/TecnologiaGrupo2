@@ -1,7 +1,6 @@
 idf_component_register(SRCS "app_main.c"
-                            "sgp30_sensor.c"
-                            "power_manager.c"
-                            "scheduler.c"
-                    INCLUDE_DIRS ".")
+                       INCLUDE_DIRS "."
+                       REQUIRES power_manager esp_netif)
+
 # Incluye el archivo Kconfig para menuconfig
-set(COMPONENT_ADD_INCLUDEDIRS .)
+set(COMPONENT_ADD_INCLUDEDIRS .)	
