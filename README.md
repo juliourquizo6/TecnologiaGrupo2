@@ -16,6 +16,7 @@ ESP32-based IoT project for monitoring environmental parameters using CO2 sensor
 ```
 tecnologia/
 ├── components/
+│   ├── power_manager/      # Deep sleep schedule management
 │   ├── sgp30/              # CO2 sensor driver and handler
 │   ├── tb_client/          # ThingsBoard MQTT client
 │   └── wifi_component/     # Wi-Fi provisioning and connection
